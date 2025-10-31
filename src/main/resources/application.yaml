@@ -1,0 +1,25 @@
+spring:
+  application:
+    name: web
+
+  datasource:
+    url: "jdbc:mysql://localhost:3309/foodiehub"
+    username: root
+    password: 112002
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    open-in-view: false
+
+  thymeleaf:
+    check-template-location: false
+
+jwt:
+  secret: "a2hp7j2hxXaq5UFnDRkMq10eJZ/qVLDS/6FkQLeq0gkbgJ6CrBU8vlgjoxf5Rls0"
+  expiration: 18000000
+
+groq:
+  api:
+    key: "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"
