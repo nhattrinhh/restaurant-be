@@ -3,9 +3,9 @@ spring:
     name: web
 
   datasource:
-    url: "jdbc:mysql://localhost:3309/foodiehub"
+    url: "jdbc:mysql://localhost:3306/foodiehub"
     username: root
-    password: 112002
+    password: abc123!@#
 
   jpa:
     hibernate:
