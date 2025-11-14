@@ -44,7 +44,7 @@ public class UserController {
     // 1b. Cập nhật profile người dùng hiện tại (dành cho người dùng thường)
     @PutMapping("/profile")
     public ResponseEntity<UserDTO> updateProfile(@AuthenticationPrincipal UserDetails userDetails,
-                                                 @RequestBody UserDTO dto) {
+            @RequestBody UserDTO dto) {
         if (userDetails == null) {
             return ResponseEntity.status(401).build();
         }
@@ -54,7 +54,8 @@ public class UserController {
             return ResponseEntity.status(403).build();
         }
 
-        // Gọi service update nhưng đảm bảo chỉ sửa thông tin cơ bản, không sửa roles hoặc enabled
+        // Gọi service update nhưng đảm bảo chỉ sửa thông tin cơ bản, không sửa roles
+        // hoặc enabled
         User updatedUser = userService.updateOwnProfile(username, dto);
         if (updatedUser == null) {
             return ResponseEntity.notFound().build();
@@ -67,7 +68,7 @@ public class UserController {
     @PutMapping("/admin/profile")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<UserDTO> updateAdminProfile(@AuthenticationPrincipal UserDetails userDetails,
-                                                      @RequestBody UserDTO dto) {
+            @RequestBody UserDTO dto) {
         if (userDetails == null) {
             return ResponseEntity.status(401).build(); // Unauthorized
         }
@@ -77,7 +78,8 @@ public class UserController {
             return ResponseEntity.status(403).build();
         }
 
-        // Gọi service update nhưng đảm bảo chỉ sửa thông tin cơ bản, không sửa roles hoặc enabled
+        // Gọi service update nhưng đảm bảo chỉ sửa thông tin cơ bản, không sửa roles
+        // hoặc enabled
         User updatedUser = userService.updateOwnProfile(username, dto);
         if (updatedUser == null) {
             return ResponseEntity.notFound().build();
@@ -156,7 +158,6 @@ public class UserController {
                 user.getAddress(),
                 user.getPhoneNumber(),
                 user.isEnabled(),
-                roles
-        );
+                roles);
     }
 }
