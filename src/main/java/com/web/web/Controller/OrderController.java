@@ -1,27 +1,35 @@
 package com.web.web.Controller;
 
+import java.time.LocalDateTime;
+import java.util.List;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
 import com.web.web.Dto.OrderDTO;
 import com.web.web.Dto.ResponseDTO;
 import com.web.web.Entity.User;
 import com.web.web.Repository.UserRepository;
 import com.web.web.Service.OrderService;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.web.bind.annotation.*;
 
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.Size;
-
-import java.time.LocalDateTime;
-import java.util.List;
 
 @RestController
 @RequestMapping("/api/orders")
@@ -32,7 +40,6 @@ public class OrderController {
     private final OrderService orderService;
     private final UserRepository userRepository;
 
-    @Autowired
     public OrderController(OrderService orderService, UserRepository userRepository) {
         this.orderService = orderService;
         this.userRepository = userRepository;
@@ -40,7 +47,8 @@ public class OrderController {
 
     private Long getCurrentUserId() {
         Object principal = SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-        String username = principal instanceof UserDetails ? ((UserDetails) principal).getUsername() : principal.toString();
+        String username = principal instanceof UserDetails ? ((UserDetails) principal).getUsername()
+                : principal.toString();
         User user = userRepository.findByUsername(username);
         if (user == null) {
             logger.error("User not found for username: {}", username);
@@ -72,14 +80,19 @@ public class OrderController {
     // Người dùng đặt hàng trực tiếp từ sản phẩm
     @PostMapping("/create-from-product")
     @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
-    public ResponseEntity<ResponseDTO<OrderDTO>> createOrderFromProduct(@Valid @RequestBody OrderFromProductRequest orderRequest) {
+    public ResponseEntity<ResponseDTO<OrderDTO>> createOrderFromProduct(
+            @Valid @RequestBody OrderFromProductRequest orderRequest) {
         try {
             Long userId = getCurrentUserId();
-            logger.info("Creating order from product for user {} with productId: {}, quantity: {}, delivery address: {}, and payment method: {}",
-                    userId, orderRequest.getProductId(), orderRequest.getQuantity(), orderRequest.getDeliveryAddress(), orderRequest.getPaymentMethod());
-            OrderDTO order = orderService.createOrderFromProduct(userId, orderRequest.getProductId(), orderRequest.getQuantity(),
+            logger.info(
+                    "Creating order from product for user {} with productId: {}, quantity: {}, delivery address: {}, and payment method: {}",
+                    userId, orderRequest.getProductId(), orderRequest.getQuantity(), orderRequest.getDeliveryAddress(),
+                    orderRequest.getPaymentMethod());
+            OrderDTO order = orderService.createOrderFromProduct(userId, orderRequest.getProductId(),
+                    orderRequest.getQuantity(),
                     orderRequest.getDeliveryAddress(), orderRequest.getPaymentMethod());
-            return ResponseEntity.status(201).body(new ResponseDTO<>("Đặt hàng trực tiếp từ sản phẩm thành công", order));
+            return ResponseEntity.status(201)
+                    .body(new ResponseDTO<>("Đặt hàng trực tiếp từ sản phẩm thành công", order));
         } catch (IllegalArgumentException e) {
             logger.error("Bad request: {}", e.getMessage());
             return ResponseEntity.badRequest().body(new ResponseDTO<>("Lỗi: " + e.getMessage(), null));
@@ -126,8 +139,7 @@ public class OrderController {
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ResponseDTO<OrderDTO>> updateOrderStatus(
             @PathVariable @Positive Long id,
-            @RequestParam @Pattern(regexp = "^(PENDING|CONFIRMED|SHIPPING|DELIVERED|CANCELLED|CANCEL_REQUESTED)$",
-                    message = "Trạng thái đơn hàng phải là PENDING, CONFIRMED, SHIPPING, DELIVERED, CANCELLED hoặc CANCEL_REQUESTED") String status) {
+            @RequestParam @Pattern(regexp = "^(PENDING|CONFIRMED|SHIPPING|DELIVERED|CANCELLED|CANCEL_REQUESTED)$", message = "Trạng thái đơn hàng phải là PENDING, CONFIRMED, SHIPPING, DELIVERED, CANCELLED hoặc CANCEL_REQUESTED") String status) {
         try {
             logger.info("Admin updating order {} to status {}", id, status);
             OrderDTO order = orderService.updateOrderStatus(id, status);
@@ -146,8 +158,7 @@ public class OrderController {
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ResponseDTO<OrderDTO>> updatePaymentStatus(
             @PathVariable @Positive Long id,
-            @RequestParam @Pattern(regexp = "^(PENDING|PAID|FAILED|REFUNDED)$",
-                    message = "Trạng thái thanh toán phải là PENDING, PAID, FAILED hoặc REFUNDED") String status) {
+            @RequestParam @Pattern(regexp = "^(PENDING|PAID|FAILED|REFUNDED)$", message = "Trạng thái thanh toán phải là PENDING, PAID, FAILED hoặc REFUNDED") String status) {
         try {
             logger.info("Admin updating payment status for order {} to {}", id, status);
             OrderDTO order = orderService.updatePaymentStatus(id, status);
@@ -164,7 +175,8 @@ public class OrderController {
     // Admin cập nhật thời gian giao hàng
     @PutMapping("/{id}/delivery-date")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<ResponseDTO<OrderDTO>> updateDeliveryDate(@PathVariable @Positive Long id, @Valid @RequestBody DeliveryDateRequest deliveryDateRequest) {
+    public ResponseEntity<ResponseDTO<OrderDTO>> updateDeliveryDate(@PathVariable @Positive Long id,
+            @Valid @RequestBody DeliveryDateRequest deliveryDateRequest) {
         try {
             logger.info("Admin updating delivery date for order {} to {}", id, deliveryDateRequest.getDeliveryDate());
             OrderDTO order = orderService.updateDeliveryDateByAdmin(id, deliveryDateRequest.getDeliveryDate());

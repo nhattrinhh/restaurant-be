@@ -1,5 +1,12 @@
 package com.web.web.Service;
 
+import java.util.List;
+import java.util.Optional;
+import java.util.stream.Collectors;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
 import com.web.web.Dto.ProductDTO;
 import com.web.web.Entity.Category;
 import com.web.web.Entity.Product;
@@ -7,12 +14,6 @@ import com.web.web.Entity.ProductType;
 import com.web.web.Repository.CategoryRepository;
 import com.web.web.Repository.ProductRepository;
 import com.web.web.Repository.ProductTypeRepository;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
-
-import java.util.List;
-import java.util.Optional;
-import java.util.stream.Collectors;
 
 @Service
 public class ProductService {
@@ -89,12 +90,14 @@ public class ProductService {
                 productDTO.getProductTypeId() == null ||
                 productDTO.getStatus() == null || productDTO.getStatus().trim().isEmpty() ||
                 productDTO.getOriginalPrice() <= 0) {
-            throw new IllegalArgumentException("Tên sản phẩm, ID loại sản phẩm, trạng thái và giá gốc không được để trống hoặc không hợp lệ");
+            throw new IllegalArgumentException(
+                    "Tên sản phẩm, ID loại sản phẩm, trạng thái và giá gốc không được để trống hoặc không hợp lệ");
         }
 
         // Kiểm tra giá trị trạng thái hợp lệ
         if (!List.of("AVAILABLE", "OUT_OF_STOCK", "DISCONTINUED").contains(productDTO.getStatus())) {
-            throw new IllegalArgumentException("Trạng thái không hợp lệ. Phải là một trong: AVAILABLE, OUT_OF_STOCK, DISCONTINUED");
+            throw new IllegalArgumentException(
+                    "Trạng thái không hợp lệ. Phải là một trong: AVAILABLE, OUT_OF_STOCK, DISCONTINUED");
         }
 
         // Kiểm tra danh mục nếu có
@@ -104,7 +107,8 @@ public class ProductService {
                 throw new IllegalArgumentException("Danh mục không tồn tại với ID: " + productDTO.getCategoryId());
             }
             // Kiểm tra tên danh mục nếu có
-            if (productDTO.getCategoryName() != null && !productDTO.getCategoryName().equals(category.get().getName())) {
+            if (productDTO.getCategoryName() != null
+                    && !productDTO.getCategoryName().equals(category.get().getName())) {
                 throw new IllegalArgumentException("Tên danh mục không khớp với ID danh mục");
             }
         }
@@ -115,13 +119,18 @@ public class ProductService {
             throw new IllegalArgumentException("Loại sản phẩm không tồn tại với ID: " + productDTO.getProductTypeId());
         }
         // Kiểm tra tên loại sản phẩm nếu có
-        if (productDTO.getProductTypeName() != null && !productDTO.getProductTypeName().equals(productType.get().getName())) {
+        if (productDTO.getProductTypeName() != null
+                && !productDTO.getProductTypeName().equals(productType.get().getName())) {
             throw new IllegalArgumentException("Tên loại sản phẩm không khớp với ID loại sản phẩm");
         }
 
         // Kiểm tra giá giảm và tỷ lệ giảm giá
         if (productDTO.getDiscountedPrice() < 0 || productDTO.getDiscount() < 0) {
             throw new IllegalArgumentException("Giá giảm và tỷ lệ giảm giá không được âm");
+        }
+
+        if (productDTO.getOriginalPrice() < productDTO.getDiscountedPrice()) {
+            throw new IllegalArgumentException("Giá khuyến mãi không được lớn hơn giá gốc");
         }
 
         // Kiểm tra sự tồn tại của sản phẩm theo tên
@@ -193,12 +202,14 @@ public class ProductService {
                 productDTO.getProductTypeId() == null ||
                 productDTO.getStatus() == null || productDTO.getStatus().trim().isEmpty() ||
                 productDTO.getOriginalPrice() <= 0) {
-            throw new IllegalArgumentException("Tên sản phẩm, ID loại sản phẩm, trạng thái và giá gốc không được để trống hoặc không hợp lệ");
+            throw new IllegalArgumentException(
+                    "Tên sản phẩm, ID loại sản phẩm, trạng thái và giá gốc không được để trống hoặc không hợp lệ");
         }
 
         // Kiểm tra giá trị trạng thái hợp lệ
         if (!List.of("AVAILABLE", "OUT_OF_STOCK", "DISCONTINUED").contains(productDTO.getStatus())) {
-            throw new IllegalArgumentException("Trạng thái không hợp lệ. Phải là một trong: AVAILABLE, OUT_OF_STOCK, DISCONTINUED");
+            throw new IllegalArgumentException(
+                    "Trạng thái không hợp lệ. Phải là một trong: AVAILABLE, OUT_OF_STOCK, DISCONTINUED");
         }
 
         // Kiểm tra danh mục nếu có
@@ -208,7 +219,8 @@ public class ProductService {
                 throw new IllegalArgumentException("Danh mục không tồn tại với ID: " + productDTO.getCategoryId());
             }
             // Kiểm tra tên danh mục nếu có
-            if (productDTO.getCategoryName() != null && !productDTO.getCategoryName().equals(category.get().getName())) {
+            if (productDTO.getCategoryName() != null
+                    && !productDTO.getCategoryName().equals(category.get().getName())) {
                 throw new IllegalArgumentException("Tên danh mục không khớp với ID danh mục");
             }
         }
@@ -219,7 +231,8 @@ public class ProductService {
             throw new IllegalArgumentException("Loại sản phẩm không tồn tại với ID: " + productDTO.getProductTypeId());
         }
         // Kiểm tra tên loại sản phẩm nếu có
-        if (productDTO.getProductTypeName() != null && !productDTO.getProductTypeName().equals(productType.get().getName())) {
+        if (productDTO.getProductTypeName() != null
+                && !productDTO.getProductTypeName().equals(productType.get().getName())) {
             throw new IllegalArgumentException("Tên loại sản phẩm không khớp với ID loại sản phẩm");
         }
 
@@ -232,7 +245,8 @@ public class ProductService {
         if (existingProduct.isPresent()) {
             Product product = existingProduct.get();
             // Kiểm tra sự tồn tại của tên sản phẩm (trừ sản phẩm hiện tại)
-            if (!product.getName().equals(productDTO.getName()) && productRepository.existsByName(productDTO.getName())) {
+            if (!product.getName().equals(productDTO.getName())
+                    && productRepository.existsByName(productDTO.getName())) {
                 throw new IllegalArgumentException("Sản phẩm với tên '" + productDTO.getName() + "' đã tồn tại");
             }
             product.setName(productDTO.getName());

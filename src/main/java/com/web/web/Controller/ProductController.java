@@ -1,14 +1,24 @@
 package com.web.web.Controller;
-import com.web.web.Dto.ProductDTO;
-import com.web.web.Service.ProductService;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
 
 import java.net.URL;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
+import com.web.web.Dto.ProductDTO;
+import com.web.web.Service.ProductService;
 
 @RestController
 @RequestMapping("/api/products")
@@ -16,7 +26,6 @@ public class ProductController {
 
     private final ProductService productService;
 
-    @Autowired
     public ProductController(ProductService productService) {
         this.productService = productService;
     }
@@ -28,7 +37,8 @@ public class ProductController {
                 productDTO.getProductTypeId() == null ||
                 productDTO.getStatus() == null || productDTO.getStatus().trim().isEmpty() ||
                 productDTO.getOriginalPrice() <= 0) {
-            return ResponseEntity.badRequest().body("Tên sản phẩm, ID loại sản phẩm, trạng thái và giá gốc không được để trống hoặc không hợp lệ");
+            return ResponseEntity.badRequest().body(
+                    "Tên sản phẩm, ID loại sản phẩm, trạng thái và giá gốc không được để trống hoặc không hợp lệ");
         }
 
         if (productDTO.getImg() != null && !productDTO.getImg().trim().isEmpty()) {
@@ -148,7 +158,8 @@ public class ProductController {
         if (id == null || id <= 0 || productDTO.getName() == null || productDTO.getName().trim().isEmpty() ||
                 productDTO.getProductTypeId() == null || productDTO.getStatus() == null ||
                 productDTO.getStatus().trim().isEmpty() || productDTO.getOriginalPrice() <= 0) {
-            return ResponseEntity.badRequest().body("ID sản phẩm, tên sản phẩm, ID loại sản phẩm, trạng thái hoặc giá gốc không hợp lệ");
+            return ResponseEntity.badRequest()
+                    .body("ID sản phẩm, tên sản phẩm, ID loại sản phẩm, trạng thái hoặc giá gốc không hợp lệ");
         }
 
         if (productDTO.getImg() != null && !productDTO.getImg().trim().isEmpty()) {
@@ -191,4 +202,3 @@ public class ProductController {
         }
     }
 }
-
