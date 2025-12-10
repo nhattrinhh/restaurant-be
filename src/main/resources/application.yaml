@@ -5,7 +5,7 @@ spring:
   datasource:
     url: "jdbc:mysql://localhost:3306/platia"
     username: root
-    password: 123456
+    password: abc123!@#
 
   jpa:
     hibernate:
@@ -15,6 +15,14 @@ spring:
 
   thymeleaf:
     check-template-location: false
+
+r2:
+  endpoint: "https://542e0ef2f822d201f057aef8b3e21503.r2.cloudflarestorage.com"
+  access-key: "0fc9be7571d35967b44756d6eba74ff8"
+  secret-key: "ab9b6230a063c0a03af2f4e564fab11317c18e8f5aff787f9f78b5e7d95a3f8b"
+  bucket: "platia-img" # tên bucket của bạn
+  # Public URL dùng virtual-host style (bucket ở subdomain). Cần bật Public Access cho bucket trong R2.
+  public-url: "https://pub-617f4c63f62649a59f7cdfc086629802.r2.dev" # URL công khai để truy cập file
 
 jwt:
   secret: "a2hp7j2hxXaq5UFnDRkMq10eJZ/qVLDS/6FkQLeq0gkbgJ6CrBU8vlgjoxf5Rls0"
