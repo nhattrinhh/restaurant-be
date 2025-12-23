@@ -3,6 +3,8 @@ package com.web.web.Config;
 import com.web.web.Entity.Role;
 import com.web.web.Entity.User;
 import com.web.web.Repository.UserRepository;
+import com.web.web.Security.OAuth2SuccessHandler;
+
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpStatus;
@@ -26,17 +28,20 @@ import java.util.Arrays;
 public class SecurityConfig {
     private final UserRepository userRepository;
     private final JwtUtil jwtUtil;
+    private final OAuth2SuccessHandler oAuth2SuccessHandler;
 
-    public SecurityConfig(UserRepository userRepository, JwtUtil jwtUtil) {
+    public SecurityConfig(UserRepository userRepository, JwtUtil jwtUtil, OAuth2SuccessHandler oAuth2SuccessHandler) {
         this.userRepository = userRepository;
         this.jwtUtil = jwtUtil;
+        this.oAuth2SuccessHandler = oAuth2SuccessHandler;
     }
 
     @Bean
     public UserDetailsService userDetailsService() {
         return username -> {
             User user = userRepository.findByUsername(username);
-            if (user == null) throw new UsernameNotFoundException("User not found");
+            if (user == null)
+                throw new UsernameNotFoundException("User not found");
             return org.springframework.security.core.userdetails.User
                     .withUsername(user.getUsername())
                     .password(user.getPassword())
@@ -51,17 +56,13 @@ public class SecurityConfig {
     }
 
     @Bean
-    public PasswordEncoder passwordEncoder() {
-        return new BCryptPasswordEncoder();
-    }
-
-    @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .csrf(csrf -> csrf.disable())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
+                        .requestMatchers("/auth/**", "/oauth2/**").permitAll()
                         .requestMatchers("/api/auth/**").permitAll()
                         .requestMatchers("/api/products", "/api/products/search").permitAll()
                         .requestMatchers("/api/product-types/**").permitAll()
@@ -74,16 +75,21 @@ public class SecurityConfig {
                         .requestMatchers("/api/cart/**").authenticated()
                         .requestMatchers("/api/news", "/api/news/search").permitAll()
                         .requestMatchers("/api/news/**").hasRole("ADMIN")
-                        .requestMatchers("/api/booking/create", "/api/booking/history", "/api/booking/user/cancel/**", "/api/booking/{id}").authenticated()
+                        .requestMatchers("/api/booking/create", "/api/booking/history", "/api/booking/user/cancel/**",
+                                "/api/booking/{id}")
+                        .authenticated()
                         .requestMatchers("/api/booking/**").hasRole("ADMIN")
                         .requestMatchers("/api/orders").authenticated()
                         .requestMatchers("/api/orders/admin").hasRole("ADMIN")
                         .requestMatchers("/api/orders/{id}/status", "/api/orders/{id}/payment-status",
-                                "/api/orders/{id}/approve-cancel", "/api/orders/{id}/reject-cancel", "/api/orders/{id}/delete", "/api/orders/{id}/delivery-date").hasRole("ADMIN")
+                                "/api/orders/{id}/approve-cancel", "/api/orders/{id}/reject-cancel",
+                                "/api/orders/{id}/delete", "/api/orders/{id}/delivery-date")
+                        .hasRole("ADMIN")
                         .requestMatchers("/api/orders/{id}", "/api/orders/{id}/cancel").authenticated()
                         .requestMatchers("/api/statistics/**").hasRole("ADMIN")
-                        .anyRequest().authenticated()
-                )
+                        .anyRequest().authenticated())
+                .oauth2Login(oauth -> oauth
+                        .successHandler(oAuth2SuccessHandler))
                 .exceptionHandling(exception -> exception
                         .authenticationEntryPoint((request, response, authException) -> {
                             response.setStatus(HttpStatus.UNAUTHORIZED.value());
@@ -94,10 +100,9 @@ public class SecurityConfig {
                             response.setStatus(HttpStatus.FORBIDDEN.value());
                             response.setContentType("application/json");
                             response.getWriter().write("{\"error\": \"Không có quyền truy cập\"}");
-                        })
-                )
+                        }))
                 .addFilterBefore(jwtAuthenticationFilter(), UsernamePasswordAuthenticationFilter.class);
-        return http.build();
+        return http.build();// response
     }
 
     @Bean
