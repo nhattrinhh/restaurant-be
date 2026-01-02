@@ -64,10 +64,10 @@ public class AuthController {
                 response.put("token", token);
                 return ResponseEntity.ok(response);
             } else {
-                return ResponseEntity.status(401).body("Thông tin đăng nhập không hợp lệ");
+                return ResponseEntity.status(401).body("Tên đăng nhập hoặc mật khẩu không đúng");
             }
         } catch (UsernameNotFoundException e) {
-            return ResponseEntity.status(401).body("Thông tin đăng nhập không hợp lệ");
+            return ResponseEntity.status(401).body("Tên đăng nhập hoặc mật khẩu không đúng");
         }
     }
 }

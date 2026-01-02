@@ -10,27 +10,42 @@ public class BookingDTO {
     private Long id;
 
     @NotBlank(message = "Tên đầy đủ không được để trống")
-    @Size(min = 2, max = 100, message = "Tên đầy đủ phải từ 2 đến 100 ký tự")
-    @Pattern(regexp = "^[a-zA-Z\\s\\-']+$", message = "Tên đầy đủ chỉ được chứa chữ cái, khoảng trắng, dấu gạch ngang hoặc dấu nháy đơn")
+    @Size(min = 8, max = 40, message = "Tên đầy đủ phải từ 8 đến 40 ký tự")
+    @Pattern(regexp = "^[\\p{L} ]+$", message = "Tên đầy đủ chỉ được chứa chữ cái và khoảng trắng")
     private String fullName;
 
     @NotBlank(message = "Số điện thoại không được để trống")
-    @Pattern(regexp = "^(\\+84|0)[0-9]{9,12}$", message = "Số điện thoại không hợp lệ")
+    @Pattern(regexp = "^(\\+84|0)[0-9]{9,10}$", message = "Số điện thoại không hợp lệ")
     private String phoneNumber;
 
-    @NotNull(message = "Ngày đặt bàn không được để trống")
-    @FutureOrPresent(message = "Ngày đặt bàn phải là ngày hiện tại hoặc trong tương lai")
+    @AssertTrue(message = "Thời gian đặt bàn phải lớn hơn thời điểm hiện tại")
+    public boolean isBookingDateTimeValid() {
+        if (bookingDate == null || bookingTime == null)
+            return true;
+
+        LocalDateTime bookingDateTime = LocalDateTime.of(bookingDate, bookingTime);
+
+        return !bookingDateTime.isBefore(LocalDateTime.now());
+    }
+
     private LocalDate bookingDate;
 
-    @NotNull(message = "Giờ đặt bàn không được để trống")
+    @AssertTrue(message = "Giờ đặt bàn phải trong khung giờ 09:00 - 23:00")
+    public boolean isBookingTimeValid() {
+        if (bookingTime == null)
+            return true; // để @NotNull xử lý
+        return !bookingTime.isBefore(LocalTime.of(9, 0)) &&
+                !bookingTime.isAfter(LocalTime.of(23, 0));
+    }
     private LocalTime bookingTime;
 
     @NotNull(message = "Số lượng khách không được để trống")
-    @Positive(message = "Số lượng khách phải là số dương")
+    @Min(value = 1, message = "Số lượng khách phải từ 1 trở lên")
     @Max(value = 50, message = "Số lượng khách tối đa là 50")
     private Integer numberOfGuests;
 
-    @Size(max = 255, message = "Khu vực không được vượt quá 255 ký tự")
+    @NotBlank(message = "Khu vực không được để trống")
+    @Pattern(regexp = "^(Trong nhà|Ngoài trời|Trong vườn|Vip)$", message = "Khu vực chỉ được là: Trong nhà, Ngoài trời, Trong vườn hoặc Vip")
     private String area;
 
     @Size(max = 500, message = "Yêu cầu đặc biệt không được vượt quá 500 ký tự")
@@ -38,19 +53,17 @@ public class BookingDTO {
 
     private LocalDateTime createdAt;
 
-
-    @Pattern(regexp = "^(PENDING|CONFIRMED|CANCELLED|CANCEL_REQUESTED)$",
-            message = "Trạng thái phải là PENDING, CONFIRMED, CANCELLED hoặc CANCEL_REQUESTED")
+    @Pattern(regexp = "^(PENDING|CONFIRMED|CANCELLED|CANCEL_REQUESTED)$", message = "Trạng thái phải là PENDING, CONFIRMED, CANCELLED hoặc CANCEL_REQUESTED")
     private String status;
-
 
     private String username;
 
-    public BookingDTO() {}
+    public BookingDTO() {
+    }
 
     public BookingDTO(Long id, String fullName, String phoneNumber, LocalDate bookingDate,
-                      LocalTime bookingTime, Integer numberOfGuests, String area,
-                      String specialRequests, LocalDateTime createdAt, String status, String username) {
+            LocalTime bookingTime, Integer numberOfGuests, String area,
+            String specialRequests, LocalDateTime createdAt, String status, String username) {
         this.id = id;
         this.fullName = fullName;
         this.phoneNumber = phoneNumber;
@@ -151,6 +164,5 @@ public class BookingDTO {
     public void setUsername(String username) {
         this.username = username;
     }
-
 
 }

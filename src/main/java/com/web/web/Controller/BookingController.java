@@ -12,7 +12,9 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/booking")
@@ -25,14 +27,32 @@ public class BookingController {
     }
 
     // Người dùng đặt bàn
+    // @PostMapping("/create")
+    // public ResponseEntity<BookingDTO> createBooking(@AuthenticationPrincipal
+    // UserDetails userDetails,
+    // @Valid @RequestBody BookingDTO dto) {
+    // if (userDetails == null) {
+    // return ResponseEntity.status(401).build();
+    // }
+    // Booking booking = bookingService.createBooking(dto,
+    // userDetails.getUsername());
+    // return ResponseEntity.ok(toDTO(booking));
+    // }
+
     @PostMapping("/create")
-    public ResponseEntity<BookingDTO> createBooking(@AuthenticationPrincipal UserDetails userDetails,
-                                                    @Valid @RequestBody BookingDTO dto) {
+    public ResponseEntity<?> createBooking(@AuthenticationPrincipal UserDetails userDetails,
+            @Valid @RequestBody BookingDTO dto) {
         if (userDetails == null) {
-            return ResponseEntity.status(401).build();
+            return ResponseEntity.status(401).body(Map.of("message", "Unauthorized"));
         }
+
         Booking booking = bookingService.createBooking(dto, userDetails.getUsername());
-        return ResponseEntity.ok(toDTO(booking));
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("message", "Đặt phòng thành công");
+        response.put("data", toDTO(booking));
+
+        return ResponseEntity.status(400).body(Map.of("message", "Đặt bàn thành công", "data", toDTO(booking)));
     }
 
     // Người dùng xem lịch sử đặt bàn
@@ -54,7 +74,8 @@ public class BookingController {
 
     // Admin và người dùng xem chi tiết đơn đặt bàn
     @GetMapping("/{id}")
-    public ResponseEntity<BookingDTO> getBookingById(@PathVariable Long id, @AuthenticationPrincipal UserDetails userDetails) {
+    public ResponseEntity<BookingDTO> getBookingById(@PathVariable Long id,
+            @AuthenticationPrincipal UserDetails userDetails) {
         if (userDetails == null) {
             return ResponseEntity.status(401).build();
         }
@@ -67,7 +88,8 @@ public class BookingController {
             BookingDTO bookingDTO = bookingService.getBookingById(id, userDetails.getUsername(), role);
             return ResponseEntity.ok(bookingDTO);
         } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().body(new BookingDTO(null, null, null, null, null, 0, null, null, null, null, e.getMessage()));
+            return ResponseEntity.badRequest()
+                    .body(new BookingDTO(null, null, null, null, null, 0, null, null, null, null, e.getMessage()));
         }
     }
 
@@ -95,7 +117,8 @@ public class BookingController {
 
     // Người dùng yêu cầu hủy đơn đặt bàn
     @PutMapping("/user/cancel/{id}")
-    public ResponseEntity<BookingDTO> cancelBookingByUser(@PathVariable Long id, @AuthenticationPrincipal UserDetails userDetails) {
+    public ResponseEntity<BookingDTO> cancelBookingByUser(@PathVariable Long id,
+            @AuthenticationPrincipal UserDetails userDetails) {
         if (userDetails == null) {
             return ResponseEntity.status(401).build();
         }
@@ -103,14 +126,16 @@ public class BookingController {
             BookingDTO bookingDTO = bookingService.cancelBookingByUser(id, userDetails.getUsername());
             return ResponseEntity.ok(bookingDTO);
         } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().body(new BookingDTO(null, null, null, null, null, 0, null, null, null, null, e.getMessage()));
+            return ResponseEntity.badRequest()
+                    .body(new BookingDTO(null, null, null, null, null, 0, null, null, null, null, e.getMessage()));
         }
     }
 
     // Admin đồng ý hủy đơn đặt bàn
     @PutMapping("/approve-cancel/{id}")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<BookingDTO> approveCancelBooking(@PathVariable Long id, @AuthenticationPrincipal UserDetails userDetails) {
+    public ResponseEntity<BookingDTO> approveCancelBooking(@PathVariable Long id,
+            @AuthenticationPrincipal UserDetails userDetails) {
         if (userDetails == null) {
             return ResponseEntity.status(401).build();
         }
@@ -123,14 +148,16 @@ public class BookingController {
             BookingDTO bookingDTO = bookingService.approveCancelBooking(id, role);
             return ResponseEntity.ok(bookingDTO);
         } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().body(new BookingDTO(null, null, null, null, null, 0, null, null, null, null, e.getMessage()));
+            return ResponseEntity.badRequest()
+                    .body(new BookingDTO(null, null, null, null, null, 0, null, null, null, null, e.getMessage()));
         }
     }
 
     // Admin từ chối hủy đơn đặt bàn
     @PutMapping("/reject-cancel/{id}")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<BookingDTO> rejectCancelBooking(@PathVariable Long id, @AuthenticationPrincipal UserDetails userDetails) {
+    public ResponseEntity<BookingDTO> rejectCancelBooking(@PathVariable Long id,
+            @AuthenticationPrincipal UserDetails userDetails) {
         if (userDetails == null) {
             return ResponseEntity.status(401).build();
         }
@@ -143,7 +170,8 @@ public class BookingController {
             BookingDTO bookingDTO = bookingService.rejectCancelBooking(id, role);
             return ResponseEntity.ok(bookingDTO);
         } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().body(new BookingDTO(null, null, null, null, null, 0, null, null, null, null, e.getMessage()));
+            return ResponseEntity.badRequest()
+                    .body(new BookingDTO(null, null, null, null, null, 0, null, null, null, null, e.getMessage()));
         }
     }
 
@@ -172,7 +200,6 @@ public class BookingController {
                 booking.getSpecialRequests(),
                 booking.getCreatedAt(),
                 booking.getStatus().name(),
-                booking.getUser().getUsername()
-        );
+                booking.getUser().getUsername());
     }
 }

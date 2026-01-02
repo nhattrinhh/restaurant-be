@@ -4,12 +4,12 @@ package com.web.web.Dto;
 import jakarta.validation.constraints.*;
 
 public class LoginDTO {
-    @NotBlank(message = "Tên người dùng không được để trống")
-    @Size(min = 3, max = 50, message = "Tên người dùng phải từ 3 đến 50 ký tự")
+    @NotNull(message = "Tên đăng nhập không được để trống")
+    @Size(min = 3, max = 40, message = "Tên đăng nhập phải từ 3 đến 40 ký tự")
     private String username;
 
-    @NotBlank(message = "Mật khẩu không được để trống")
-    @Size(min = 6, max = 100, message = "Mật khẩu phải từ 6 đến 100 ký tự")
+    @NotNull(message = "Mật khẩu không được để trống")
+    @Size(min = 6, max = 15, message = "Mật khẩu phải từ 6 đến 15 ký tự")
     private String password;
 
     public LoginDTO() {}
