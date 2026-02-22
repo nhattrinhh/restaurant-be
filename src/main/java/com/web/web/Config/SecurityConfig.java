@@ -90,6 +90,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/statistics/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.GET, "/api/table-areas/**", "/api/tables/**").permitAll()
                         .requestMatchers("/api/table-areas/**", "/api/tables/**").hasRole("ADMIN")
+                        .requestMatchers("/api/table-invoices/**").hasRole("ADMIN")
                         .anyRequest().authenticated())
                 .oauth2Login(oauth -> oauth
                         .successHandler(oAuth2SuccessHandler))
