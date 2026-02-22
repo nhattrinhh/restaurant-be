@@ -1,5 +1,6 @@
 package com.web.web.Service;
 
+import com.web.web.Dto.ChangePasswordRequest;
 import com.web.web.Dto.UserDTO;
 import com.web.web.Entity.Role;
 import com.web.web.Entity.User;
@@ -19,8 +20,8 @@ public class UserService {
     private final PasswordEncoder passwordEncoder;
 
     public UserService(UserRepository userRepository,
-                       RoleRepository roleRepository,
-                       PasswordEncoder passwordEncoder) {
+            RoleRepository roleRepository,
+            PasswordEncoder passwordEncoder) {
         this.userRepository = userRepository;
         this.roleRepository = roleRepository;
         this.passwordEncoder = passwordEncoder;
@@ -29,7 +30,7 @@ public class UserService {
     // 1. Đăng ký người dùng mới
     @Transactional
     public User registerUser(String username, String password, String email, String fullname,
-                             String address, String phoneNumber, String... roleNames) {
+            String address, String phoneNumber, String... roleNames) {
         if (userRepository.existsByUsername(username)) {
             throw new RuntimeException("Tên đăng nhập đã tồn tại");
         }
@@ -70,7 +71,8 @@ public class UserService {
     @Transactional
     public boolean deleteByUsername(String username) {
         User user = userRepository.findByUsername(username);
-        if (user == null) return false;
+        if (user == null)
+            return false;
         userRepository.delete(user);
         return true;
     }
@@ -107,7 +109,8 @@ public class UserService {
     @Transactional
     public User updateUser(String username, UserDTO dto) {
         User user = userRepository.findByUsername(username);
-        if (user == null) return null;
+        if (user == null)
+            return null;
 
         if (!dto.getEmail().equals(user.getEmail()) && userRepository.existsByEmail(dto.getEmail())) {
             throw new RuntimeException("Email đã được sử dụng");
@@ -131,7 +134,8 @@ public class UserService {
     @Transactional
     public User updateOwnProfile(String username, UserDTO dto) {
         User user = userRepository.findByUsername(username);
-        if (user == null) return null;
+        if (user == null)
+            return null;
 
         // Kiểm tra email có bị trùng không
         if (!dto.getEmail().equals(user.getEmail()) && userRepository.existsByEmail(dto.getEmail())) {
@@ -159,5 +163,25 @@ public class UserService {
             roles.add(role);
         }
         return roles;
+    }
+
+    // 10. Đổi mật khẩu
+    @Transactional
+    public void changePassword(String username, ChangePasswordRequest request) {
+        User user = userRepository.findByUsername(username);
+        if (user == null) {
+            throw new RuntimeException("Người dùng không tồn tại");
+        }
+
+        if (!passwordEncoder.matches(request.getOldPassword(), user.getPassword())) {
+            throw new RuntimeException("Mật khẩu cũ không chính xác");
+        }
+
+        if (!request.getNewPassword().equals(request.getConfirmPassword())) {
+            throw new RuntimeException("Mật khẩu mới và xác nhận mật khẩu không khớp");
+        }
+
+        user.setPassword(passwordEncoder.encode(request.getNewPassword()));
+        userRepository.save(user);
     }
 }

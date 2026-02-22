@@ -1,5 +1,6 @@
 package com.web.web.Controller;
 
+import com.web.web.Dto.ChangePasswordRequest;
 import com.web.web.Dto.UserDTO;
 import com.web.web.Entity.Role;
 import com.web.web.Entity.User;
@@ -159,5 +160,22 @@ public class UserController {
                 user.getPhoneNumber(),
                 user.isEnabled(),
                 roles);
+    }
+
+    // 1d. Đổi mật khẩu
+    @PostMapping("/change-password")
+    public ResponseEntity<?> changePassword(@AuthenticationPrincipal UserDetails userDetails,
+            @Valid @RequestBody ChangePasswordRequest request) {
+        if (userDetails == null) {
+            return ResponseEntity.status(401).build();
+        }
+
+        try {
+            userService.changePassword(userDetails.getUsername(), request);
+            return ResponseEntity.ok().build();
+        } catch (RuntimeException e) {
+            // Trả về lỗi dưới dạng JSON object để frontend dễ xử lý
+            return ResponseEntity.badRequest().body(java.util.Collections.singletonMap("error", e.getMessage()));
+        }
     }
 }
