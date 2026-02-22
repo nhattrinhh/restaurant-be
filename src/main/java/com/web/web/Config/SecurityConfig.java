@@ -20,6 +20,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+import org.springframework.http.HttpMethod;
 
 import java.util.Arrays;
 
@@ -87,6 +88,8 @@ public class SecurityConfig {
                         .hasRole("ADMIN")
                         .requestMatchers("/api/orders/{id}", "/api/orders/{id}/cancel").authenticated()
                         .requestMatchers("/api/statistics/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.GET, "/api/table-areas/**", "/api/tables/**").permitAll()
+                        .requestMatchers("/api/table-areas/**", "/api/tables/**").hasRole("ADMIN")
                         .anyRequest().authenticated())
                 .oauth2Login(oauth -> oauth
                         .successHandler(oAuth2SuccessHandler))
