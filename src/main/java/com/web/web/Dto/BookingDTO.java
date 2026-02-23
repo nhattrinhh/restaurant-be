@@ -37,6 +37,7 @@ public class BookingDTO {
         return !bookingTime.isBefore(LocalTime.of(9, 0)) &&
                 !bookingTime.isAfter(LocalTime.of(23, 0));
     }
+
     private LocalTime bookingTime;
 
     @NotNull(message = "Số lượng khách không được để trống")
@@ -45,8 +46,14 @@ public class BookingDTO {
     private Integer numberOfGuests;
 
     @NotBlank(message = "Khu vực không được để trống")
-    @Pattern(regexp = "^(Trong nhà|Ngoài trời|Trong vườn|Vip)$", message = "Khu vực chỉ được là: Trong nhà, Ngoài trời, Trong vườn hoặc Vip")
     private String area;
+
+    @AssertTrue(message = "Khu vực không hợp lệ")
+    public boolean isAreaValid() {
+        if (area == null || area.isBlank())
+            return true;
+        return java.util.List.of("INDOOR", "VIP", "OUTDOOR", "GARDEN").contains(area.trim());
+    }
 
     @Size(max = 500, message = "Yêu cầu đặc biệt không được vượt quá 500 ký tự")
     private String specialRequests;

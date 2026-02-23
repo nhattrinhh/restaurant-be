@@ -9,6 +9,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -63,6 +64,12 @@ public class BookingService {
                 .collect(Collectors.toList());
     }
 
+    // Lấy đặt bàn CONFIRMED theo ngày (dùng cho TableManager panel)
+    public List<Booking> getConfirmedBookingsForDate(LocalDate date) {
+        return bookingRepository.findByBookingDateAndStatusOrderByBookingTimeAsc(
+                date, Booking.BookingStatus.CONFIRMED);
+    }
+
     // Admin và người dùng xem chi tiết đơn đặt bàn
     public BookingDTO getBookingById(Long id, String username, String role) {
         Optional<Booking> booking = bookingRepository.findById(id);
@@ -70,7 +77,8 @@ public class BookingService {
             throw new RuntimeException("Đơn đặt bàn không tồn tại");
         }
         Booking b = booking.get();
-        // Kiểm tra quyền: Nếu không phải ADMIN, người dùng chỉ xem được đơn của chính họ
+        // Kiểm tra quyền: Nếu không phải ADMIN, người dùng chỉ xem được đơn của chính
+        // họ
         if (!role.equals("ROLE_ADMIN") && !b.getUser().getUsername().equals(username)) {
             throw new RuntimeException("Bạn không có quyền xem chi tiết đơn đặt bàn này");
         }
@@ -100,6 +108,7 @@ public class BookingService {
         b.setStatus(Booking.BookingStatus.CANCELLED);
         return toDTO(bookingRepository.save(b));
     }
+
     // Người dùng yêu cầu hủy đơn đặt bàn
     @Transactional
     public BookingDTO cancelBookingByUser(Long id, String username) {
@@ -176,7 +185,6 @@ public class BookingService {
                 booking.getSpecialRequests(),
                 booking.getCreatedAt(),
                 booking.getStatus().name(),
-                booking.getUser().getUsername()
-        );
+                booking.getUser().getUsername());
     }
 }

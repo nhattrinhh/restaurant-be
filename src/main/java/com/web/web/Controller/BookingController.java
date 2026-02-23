@@ -12,7 +12,6 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -47,12 +46,7 @@ public class BookingController {
         }
 
         Booking booking = bookingService.createBooking(dto, userDetails.getUsername());
-
-        Map<String, Object> response = new HashMap<>();
-        response.put("message", "Đặt phòng thành công");
-        response.put("data", toDTO(booking));
-
-        return ResponseEntity.status(400).body(Map.of("message", "Đặt bàn thành công", "data", toDTO(booking)));
+        return ResponseEntity.status(201).body(Map.of("message", "Đặt bàn thành công", "data", toDTO(booking)));
     }
 
     // Người dùng xem lịch sử đặt bàn
@@ -70,6 +64,16 @@ public class BookingController {
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<List<BookingDTO>> getAllBookings() {
         return ResponseEntity.ok(bookingService.getAllBookings());
+    }
+
+    // Admin xem đặt bàn hôm nay (CONFIRMED) - dùng cho TableManager
+    @GetMapping("/today")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<List<BookingDTO>> getTodayBookings() {
+        java.time.LocalDate today = java.time.LocalDate.now();
+        List<com.web.web.Entity.Booking> bookings = bookingService.getConfirmedBookingsForDate(today);
+        List<BookingDTO> dtos = bookings.stream().map(this::toDTO).toList();
+        return ResponseEntity.ok(dtos);
     }
 
     // Admin và người dùng xem chi tiết đơn đặt bàn
