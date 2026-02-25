@@ -14,8 +14,7 @@ public class Promotion {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false, unique = true, length = 50)
-    private String code;
+
 
     @Column(nullable = false)
     private String name;
@@ -33,11 +32,7 @@ public class Promotion {
     @Column(name = "min_order_value", nullable = false, precision = 15, scale = 2)
     private BigDecimal minOrderValue = BigDecimal.ZERO;
 
-    @Column(name = "usage_limit", nullable = false)
-    private Integer usageLimit = 100;
 
-    @Column(name = "used_count", nullable = false)
-    private Integer usedCount = 0;
 
     @Column(name = "start_date", nullable = false)
     private LocalDateTime startDate;

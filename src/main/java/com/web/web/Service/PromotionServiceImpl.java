@@ -29,9 +29,6 @@ public class PromotionServiceImpl implements PromotionService {
 
     @Override
     public PromotionDto create(PromotionDto dto) {
-        if (repo.existsByCode(dto.getCode())) {
-            throw new IllegalArgumentException("Mã voucher '" + dto.getCode() + "' đã tồn tại");
-        }
         Promotion p = toEntity(new Promotion(), dto);
         return toDto(repo.save(p));
     }
@@ -40,10 +37,6 @@ public class PromotionServiceImpl implements PromotionService {
     public PromotionDto update(Long id, PromotionDto dto) {
         Promotion p = repo.findById(id)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy khuyến mãi với ID: " + id));
-        // If code changed, check uniqueness
-        if (!p.getCode().equals(dto.getCode()) && repo.existsByCode(dto.getCode())) {
-            throw new IllegalArgumentException("Mã voucher '" + dto.getCode() + "' đã tồn tại");
-        }
         toEntity(p, dto);
         return toDto(repo.save(p));
     }
@@ -75,14 +68,11 @@ public class PromotionServiceImpl implements PromotionService {
     private PromotionDto toDto(Promotion p) {
         PromotionDto dto = new PromotionDto();
         dto.setId(p.getId());
-        dto.setCode(p.getCode());
         dto.setName(p.getName());
         dto.setDescription(p.getDescription());
         dto.setType(p.getType() != null ? p.getType().name() : null);
         dto.setValue(p.getValue());
         dto.setMinOrderValue(p.getMinOrderValue());
-        dto.setUsageLimit(p.getUsageLimit());
-        dto.setUsedCount(p.getUsedCount());
         dto.setStartDate(p.getStartDate() != null ? p.getStartDate().format(FMT) : null);
         dto.setEndDate(p.getEndDate() != null ? p.getEndDate().format(FMT) : null);
         dto.setStatus(p.getStatus() != null ? p.getStatus().name() : null);
@@ -92,15 +82,11 @@ public class PromotionServiceImpl implements PromotionService {
     }
 
     private Promotion toEntity(Promotion p, PromotionDto dto) {
-        p.setCode(dto.getCode() != null ? dto.getCode().trim().toUpperCase() : null);
         p.setName(dto.getName());
         p.setDescription(dto.getDescription());
         p.setType(dto.getType() != null ? PromotionType.valueOf(dto.getType()) : PromotionType.PERCENT);
         p.setValue(dto.getValue() != null ? dto.getValue() : BigDecimal.ZERO);
         p.setMinOrderValue(dto.getMinOrderValue() != null ? dto.getMinOrderValue() : BigDecimal.ZERO);
-        p.setUsageLimit(dto.getUsageLimit() != null ? dto.getUsageLimit() : 100);
-        if (p.getUsedCount() == null)
-            p.setUsedCount(0);
         p.setStartDate(dto.getStartDate() != null ? LocalDateTime.parse(dto.getStartDate(), FMT) : null);
         p.setEndDate(dto.getEndDate() != null ? LocalDateTime.parse(dto.getEndDate(), FMT) : null);
         p.setStatus(dto.getStatus() != null ? PromotionStatus.valueOf(dto.getStatus()) : PromotionStatus.ACTIVE);

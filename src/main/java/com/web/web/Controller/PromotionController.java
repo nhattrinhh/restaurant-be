@@ -34,9 +34,6 @@ public class PromotionController {
     // POST /api/promotions — Tạo mới
     @PostMapping
     public ResponseEntity<?> create(@RequestBody PromotionDto dto) {
-        if (dto.getCode() == null || dto.getCode().trim().isEmpty()) {
-            return ResponseEntity.badRequest().body("Mã voucher không được để trống");
-        }
         if (dto.getName() == null || dto.getName().trim().isEmpty()) {
             return ResponseEntity.badRequest().body("Tên chương trình không được để trống");
         }
