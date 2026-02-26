@@ -70,7 +70,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/categories/**").permitAll()
                         .requestMatchers("/api/chatbot").permitAll()
                         .requestMatchers("/api/products/**").hasRole("ADMIN")
-                        .requestMatchers("/api/user/profile").permitAll()
+                        .requestMatchers("/api/user/profile", "/api/user/change-password").authenticated()
                         .requestMatchers("/api/admin/profile").hasRole("ADMIN")
                         .requestMatchers("/api/user/**").hasRole("ADMIN")
                         .requestMatchers("/api/cart/**").authenticated()
