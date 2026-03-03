@@ -89,13 +89,13 @@ public class UserController {
         return ResponseEntity.ok(toDTO(updatedUser));
     }
 
-    // 2. Admin lấy danh sách người dùng thường
+    // 2. Admin lấy danh sách tất cả người dùng (trừ BOSS)
     @GetMapping("/all")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<List<UserDTO>> getAllUsers() {
         List<User> users = userService.getAllUsers().stream()
                 .filter(user -> user.getRoles().stream()
-                        .noneMatch(role -> role.getName().equalsIgnoreCase("ADMIN")))
+                        .noneMatch(role -> role.getName().equalsIgnoreCase("BOSS")))
                 .collect(Collectors.toList());
 
         List<UserDTO> dtos = users.stream()
@@ -144,6 +144,18 @@ public class UserController {
             return ResponseEntity.notFound().build();
         }
         return ResponseEntity.ok().build();
+    }
+
+    // 7. Admin khóa / mở khóa tài khoản (toggle enabled)
+    @PutMapping("/{username}/toggle-status")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> toggleUserStatus(@PathVariable String username) {
+        try {
+            User updatedUser = userService.toggleUserStatus(username);
+            return ResponseEntity.ok(toDTO(updatedUser));
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(java.util.Collections.singletonMap("error", e.getMessage()));
+        }
     }
 
     // Helper chuyển từ Entity -> DTO

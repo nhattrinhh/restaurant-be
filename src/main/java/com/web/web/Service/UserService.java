@@ -77,6 +77,16 @@ public class UserService {
         return true;
     }
 
+    // 5b. Khóa / Mở khóa user (toggle enabled)
+    @Transactional
+    public User toggleUserStatus(String username) {
+        User user = userRepository.findByUsername(username);
+        if (user == null)
+            throw new RuntimeException("Không tìm thấy người dùng: " + username);
+        user.setEnabled(!user.isEnabled());
+        return userRepository.save(user);
+    }
+
     // 6. Tìm user theo username
     public User findByUsername(String username) {
         return userRepository.findByUsername(username);
