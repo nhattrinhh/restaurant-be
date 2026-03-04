@@ -63,6 +63,9 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
+                        // ── Allow CORS preflight (OPTIONS) for all endpoints ─────────────────────
+                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+
                         // ── Công khai ────────────────────────────────────────────────────────────
                         .requestMatchers("/auth/**", "/oauth2/**").permitAll()
                         .requestMatchers("/api/auth/**").permitAll()
@@ -94,6 +97,7 @@ public class SecurityConfig {
                         .hasAnyRole("ADMIN", "STAFF", "BOSS")
                         .requestMatchers("/api/table-areas/**", "/api/tables/**").hasAnyRole("ADMIN", "STAFF", "BOSS")
                         .requestMatchers("/api/table-invoices/**").hasAnyRole("ADMIN", "STAFF", "BOSS")
+                        .requestMatchers("/api/table-orders/**").hasAnyRole("ADMIN", "STAFF", "BOSS")
 
                         // ── Đã đăng nhập ─────────────────────────────────────────────────────────
                         .requestMatchers("/api/user/profile", "/api/user/change-password").authenticated()
@@ -122,7 +126,7 @@ public class SecurityConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
         configuration.setAllowedOrigins(Arrays.asList("http://localhost:5173", "http://127.0.0.1:5173"));
-        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(Arrays.asList("*"));
         configuration.setAllowCredentials(true);
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
