@@ -60,7 +60,7 @@ public class SecurityConfig {
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-                .csrf(csrf -> csrf.disable())
+                .csrf(csrf -> csrf.ignoringRequestMatchers("/api/sepay/**").disable())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         // ── Allow CORS preflight (OPTIONS) for all endpoints ─────────────────────
@@ -75,6 +75,13 @@ public class SecurityConfig {
                         .requestMatchers("/api/chatbot").permitAll()
                         .requestMatchers("/api/news", "/api/news/search").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/table-areas/**", "/api/tables/**").permitAll()
+                        .requestMatchers("/api/sepay/**").permitAll()
+
+                        // ── Đã đăng nhập ─────────────────────────────────────────────────────────
+                        .requestMatchers("/api/user/profile", "/api/user/change-password").authenticated()
+                        .requestMatchers("/api/cart/**").authenticated()
+                        .requestMatchers("/api/orders").authenticated()
+                        .requestMatchers("/api/orders/{id}", "/api/orders/{id}/cancel").authenticated()
 
                         // ── BOSS — toàn quyền ────────────────────────────────────────────────────
                         .requestMatchers("/api/statistics/**").hasRole("BOSS")
@@ -99,11 +106,6 @@ public class SecurityConfig {
                         .requestMatchers("/api/table-invoices/**").hasAnyRole("ADMIN", "STAFF", "BOSS")
                         .requestMatchers("/api/table-orders/**").hasAnyRole("ADMIN", "STAFF", "BOSS")
 
-                        // ── Đã đăng nhập ─────────────────────────────────────────────────────────
-                        .requestMatchers("/api/user/profile", "/api/user/change-password").authenticated()
-                        .requestMatchers("/api/cart/**").authenticated()
-                        .requestMatchers("/api/orders").authenticated()
-                        .requestMatchers("/api/orders/{id}", "/api/orders/{id}/cancel").authenticated()
                         .anyRequest().authenticated())
                 .oauth2Login(oauth -> oauth
                         .successHandler(oAuth2SuccessHandler))
