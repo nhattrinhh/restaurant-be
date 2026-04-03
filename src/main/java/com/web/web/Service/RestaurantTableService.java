@@ -30,7 +30,8 @@ public class RestaurantTableService {
                 t.getName(),
                 t.getStatus().name(),
                 t.getArea().getId(),
-                t.getArea().getName());
+                t.getArea().getName(),
+                t.getNumberOfSeats());
     }
 
     public List<RestaurantTableDTO> getAllTables() {

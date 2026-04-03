@@ -23,6 +23,9 @@ public class RestaurantTable {
     @JoinColumn(name = "area_id", nullable = false)
     private TableArea area;
 
+    @Column(nullable = false)
+    private int numberOfSeats;
+
     public enum TableStatus {
         EMPTY, OCCUPIED
     }
@@ -60,5 +63,13 @@ public class RestaurantTable {
 
     public void setArea(TableArea area) {
         this.area = area;
+    }
+
+    public int getNumberOfSeats() {
+        return numberOfSeats;
+    }
+
+    public void setNumberOfSeats(int numberOfSeats) {
+        this.numberOfSeats = numberOfSeats;
     }
 }

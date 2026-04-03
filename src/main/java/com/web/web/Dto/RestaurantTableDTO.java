@@ -9,16 +9,18 @@ public class RestaurantTableDTO {
     private String status;
     private Long areaId;
     private String areaName;
+    private int numberOfSeats;
 
     public RestaurantTableDTO() {
     }
 
-    public RestaurantTableDTO(Long id, String name, String status, Long areaId, String areaName) {
+    public RestaurantTableDTO(Long id, String name, String status, Long areaId, String areaName, int numberOfSeats) {
         this.id = id;
         this.name = name;
         this.status = status;
         this.areaId = areaId;
         this.areaName = areaName;
+        this.numberOfSeats = numberOfSeats;
     }
 
     public Long getId() {
@@ -59,5 +61,13 @@ public class RestaurantTableDTO {
 
     public void setAreaName(String areaName) {
         this.areaName = areaName;
+    }
+
+    public int getNumberOfSeats() {
+        return numberOfSeats;
+    }
+
+    public void setNumberOfSeats(int numberOfSeats) {
+        this.numberOfSeats = numberOfSeats;
     }
 }
