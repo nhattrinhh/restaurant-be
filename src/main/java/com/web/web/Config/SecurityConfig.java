@@ -24,7 +24,7 @@ import org.springframework.http.HttpMethod;
 
 import java.util.Arrays;
 
-@Configuration
+@Configuration(proxyBeanMethods = false)
 @EnableWebSecurity
 public class SecurityConfig {
     private final UserRepository userRepository;
@@ -87,8 +87,12 @@ public class SecurityConfig {
                         .requestMatchers("/api/statistics/**").hasRole("BOSS")
 
                         // ── ADMIN + BOSS — quản lý nội dung ─────────────────────────────────────
-                        .requestMatchers("/api/products/**").hasAnyRole("ADMIN", "BOSS")
-                        .requestMatchers("/api/news/**").hasAnyRole("ADMIN", "BOSS")
+                        .requestMatchers(HttpMethod.POST, "/api/products/**").hasAnyRole("ADMIN", "BOSS")
+                        .requestMatchers(HttpMethod.PUT, "/api/products/**").hasAnyRole("ADMIN", "BOSS")
+                        .requestMatchers(HttpMethod.DELETE, "/api/products/**").hasAnyRole("ADMIN", "BOSS")
+                        .requestMatchers(HttpMethod.POST, "/api/news/**").hasAnyRole("ADMIN", "BOSS")
+                        .requestMatchers(HttpMethod.PUT, "/api/news/**").hasAnyRole("ADMIN", "BOSS")
+                        .requestMatchers(HttpMethod.DELETE, "/api/news/**").hasAnyRole("ADMIN", "BOSS")
                         .requestMatchers("/api/user/**").hasAnyRole("ADMIN", "BOSS")
                         .requestMatchers("/api/admin/profile").hasAnyRole("ADMIN", "BOSS")
 
@@ -127,10 +131,12 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(Arrays.asList("http://localhost:5173", "http://127.0.0.1:5173"));
-        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
+        configuration.setAllowedOrigins(
+                Arrays.asList("http://localhost:5173", "https://nhat.cloud", "https://api.nhat.cloud"));
+        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(Arrays.asList("*"));
         configuration.setAllowCredentials(true);
+
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);
         return source;
