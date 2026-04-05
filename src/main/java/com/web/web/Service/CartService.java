@@ -166,7 +166,11 @@ public class CartService {
                 .orElseThrow(() -> new IllegalArgumentException("Người dùng không tồn tại với ID: " + userId));
 
         Cart cart = cartRepository.findByUser(user)
-                .orElseThrow(() -> new IllegalArgumentException("Giỏ hàng không tồn tại"));
+                .orElseGet(() -> {
+                    Cart newCart = new Cart();
+                    newCart.setUser(user);
+                    return cartRepository.save(newCart);
+                });
 
         return toDTO(cart);
     }
