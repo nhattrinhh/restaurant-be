@@ -61,7 +61,8 @@ public class CartController {
     }
 
     @PutMapping("/update")
-    public ResponseEntity<ResponseDTO<CartDTO>> updateCartItemQuantity(@RequestParam Long productId, @RequestParam int quantity) {
+    public ResponseEntity<ResponseDTO<CartDTO>> updateCartItemQuantity(@RequestParam Long productId,
+            @RequestParam int quantity) {
         try {
             Long userId = getCurrentUserId();
             logger.info("Updating product {} with quantity {} in cart for user {}", productId, quantity, userId);
@@ -103,7 +104,7 @@ public class CartController {
             logger.error("Bad request: {}", e.getMessage());
             return ResponseEntity.badRequest().body(new ResponseDTO<>("Lỗi: " + e.getMessage(), null));
         } catch (Exception e) {
-            logger.error("Server error: {}", e.getMessage(), e);
+            logger.error("Server error khi lấy giỏ hàng - Chi tiết lỗi: ", e);
             return ResponseEntity.status(500).body(new ResponseDTO<>("Lỗi server: " + e.getMessage(), null));
         }
     }
