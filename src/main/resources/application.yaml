@@ -3,7 +3,7 @@ spring:
     name: web
 
   datasource:
-    url: "jdbc:mysql://localhost:3306/platia"
+    url: "jdbc:mysql://mysql:3306/platia"
     username: root
     password: abc123!@#
 
