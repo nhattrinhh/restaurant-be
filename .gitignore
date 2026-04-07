@@ -31,3 +31,7 @@ build/
 
 ### VS Code ###
 .vscode/
+
+### Environment / Secrets (KHÔNG commit lên Git) ###
+.env
+docker-compose.yml

@@ -1,16 +1,22 @@
 spring:
   application:
     name: web
+  config:
+    import: optional:file:./.env[.properties]
 
+  # Datasource configuration — sử dụng env vars với giá trị mặc định cho local dev
   datasource:
-    url: "jdbc:mysql://mysql:3306/platia"
-    username: root
-    password: abc123!@#
+    url: "jdbc:mysql://${DB_HOST:localhost}:${DB_PORT:3306}/${DB_NAME:platia}?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Ho_Chi_Minh"
+    username: ${DB_USERNAME:root}
+    password: ${DB_PASSWORD:}
+    driver-class-name: com.mysql.cj.jdbc.Driver
 
+  # JPA / Hibernate settings
   jpa:
+    database-platform: org.hibernate.dialect.MySQLDialect
     hibernate:
-      ddl-auto: update
-    show-sql: true
+      ddl-auto: ${JPA_DDL_AUTO:update}
+    show-sql: ${JPA_SHOW_SQL:true}
     open-in-view: false
 
   thymeleaf:
@@ -19,51 +25,57 @@ spring:
   # Tăng giới hạn upload để tránh MaxUploadSizeExceededException
   servlet:
     multipart:
-      max-file-size: 10MB
-      max-request-size: 10MB
+      max-file-size: 50MB
+      max-request-size: 50MB
 
+
+  # Security / OAuth2 — Secrets lấy từ .env hoặc môi trường thực
   security:
     oauth2:
       client:
         registration:
           google:
-            client-id: 997857994912-nnk12r1eph58b7irvl8ftgp81ahp7u0r.apps.googleusercontent.com
-            client-secret: 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
-            scope:
-              - email
-              - profile
+            client-id: ${GOOGLE_CLIENT_ID}
+            client-secret: ${GOOGLE_CLIENT_SECRET}
+            scope: [email, profile]
             redirect-uri: "{baseUrl}/login/oauth2/code/{registrationId}"
           facebook:
-            client-id: 25657278743868448
-            client-secret: 541dee1a4d00ef47d9e72c0206f421db
-            scope:
-              - email
-              - public_profile
+            client-id: ${FACEBOOK_CLIENT_ID}
+            client-secret: ${FACEBOOK_CLIENT_SECRET}
+            scope: [email, public_profile]
             redirect-uri: "{baseUrl}/login/oauth2/code/{registrationId}"
           github:
-            client-id: Ov23lipdhEGNP2xtczgw
-            client-secret: 6a6ab6099b77a07997ab741da60d6793fcb69e19
-            scope:
-              - user:email
-              - read:user
+            client-id: ${GITHUB_CLIENT_ID}
+            client-secret: ${GITHUB_CLIENT_SECRET}
+            scope: ["user:email", "read:user"]
             redirect-uri: "{baseUrl}/login/oauth2/code/{registrationId}"
         provider:
           facebook:
             authorization-uri: https://www.facebook.com/v24.0/dialog/oauth
             token-uri: https://graph.facebook.com/v24.0/oauth/access_token
             user-info-uri: https://graph.facebook.com/v24.0/me?fields=id,name,email,age_range,gender,hometown,birthday
+
+# R2 Storage settings
 r2:
-  endpoint: "https://542e0ef2f822d201f057aef8b3e21503.r2.cloudflarestorage.com"
-  access-key: "0fc9be7571d35967b44756d6eba74ff8"
-  secret-key: "ab9b6230a063c0a03af2f4e564fab11317c18e8f5aff787f9f78b5e7d95a3f8b"
-  bucket: "platia-img" # tên bucket của bạn
-  # Public URL dùng virtual-host style (bucket ở subdomain). Cần bật Public Access cho bucket trong R2.
-  public-url: "https://pub-617f4c63f62649a59f7cdfc086629802.r2.dev" # URL công khai để truy cập file
+  endpoint: ${R2_ENDPOINT}
+  access-key: ${R2_ACCESS_KEY}
+  secret-key: ${R2_SECRET_KEY}
+  bucket: ${R2_BUCKET:platia-img}
+  public-url: ${R2_PUBLIC_URL}
 
+# JWT settings
 jwt:
-  secret: "a2hp7j2hxXaq5UFnDRkMq10eJZ/qVLDS/6FkQLeq0gkbgJ6CrBU8vlgjoxf5Rls0"
-  expiration: 18000000
+  secret: ${JWT_SECRET}
+  expiration: ${JWT_EXPIRATION:18000000}
 
+# Groq AI settings
 groq:
   api:
-    key: "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"
+    key: ${GROQ_API_KEY}
+
+# Logging configuration — cho phép override qua môi trường
+logging:
+  level:
+    root: ${LOG_ROOT:INFO}
+    com.web: ${LOG_APP:DEBUG}
+    org.springframework.security: ${LOG_SECURITY:INFO}
