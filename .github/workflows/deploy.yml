@@ -24,6 +24,7 @@ jobs:
       - name: Push image
         run: docker push glowryzz/platia:${{ github.run_number }}
 
+
       - name: Deploy VPS
         uses: appleboy/ssh-action@v1.0.0
         with:
