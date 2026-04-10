@@ -15,6 +15,9 @@ public interface TableOrderRepository extends JpaRepository<TableOrder, Long> {
 
     Optional<TableOrder> findByTableIdAndStatus(Long tableId, TableOrder.OrderStatus status);
 
+    @Query("SELECT o FROM TableOrder o LEFT JOIN FETCH o.items WHERE o.tableId = :tableId AND o.status = :status")
+    Optional<TableOrder> findByTableIdAndStatusWithItems(Long tableId, TableOrder.OrderStatus status);
+
     @Query("SELECT o FROM TableOrder o LEFT JOIN FETCH o.items WHERE o.status = :status")
     List<TableOrder> findAllByStatusWithItems(TableOrder.OrderStatus status);
 

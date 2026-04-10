@@ -50,8 +50,30 @@ public class TableOrderService {
         return orderRepo.findByTableIdAndStatus(tableId, TableOrder.OrderStatus.OPEN);
     }
 
+    private void ensureEntryDateTime(TableOrder order) {
+        if (order.getEntryTime() == null || order.getEntryTime().isBlank()) {
+            java.time.LocalTime now = java.time.LocalTime.now();
+            order.setEntryTime(String.format("%02d:%02d", now.getHour(), now.getMinute()));
+        }
+        if (order.getEntryDate() == null || order.getEntryDate().isBlank()) {
+            order.setEntryDate(java.time.LocalDate.now().toString());
+        }
+    }
+
+    private List<TableOrderItemDto> mapItems(List<TableOrderItem> items, boolean includeDraftItems) {
+        return items.stream()
+                .filter(i -> includeDraftItems || i.getStatus() != TableOrderItem.ItemStatus.DRAFT)
+                .sorted(Comparator.comparing(TableOrderItem::getCreatedAt, Comparator.nullsLast(Comparator.naturalOrder())))
+                .map(this::toItemDto)
+                .collect(Collectors.toList());
+    }
+
     /** Build KitchenOrderResponse from a TableOrder entity */
     private KitchenOrderResponse toResponse(TableOrder order) {
+        return toResponse(order, true);
+    }
+
+    private KitchenOrderResponse toResponse(TableOrder order, boolean includeDraftItems) {
         KitchenOrderResponse resp = new KitchenOrderResponse();
         resp.setTableOrderId(order.getId());
         resp.setTableId(order.getTableId());
@@ -74,11 +96,33 @@ public class TableOrderService {
         });
 
         // Map items
-        List<TableOrderItemDto> itemDtos = order.getItems().stream()
-                .map(this::toItemDto)
-                .collect(Collectors.toList());
+        List<TableOrderItemDto> itemDtos = mapItems(order.getItems(), includeDraftItems);
         resp.setItems(itemDtos);
 
+        return resp;
+    }
+
+    private TableOrderSnapshotResponse toSnapshotResponse(TableOrder order) {
+        TableOrderSnapshotResponse resp = new TableOrderSnapshotResponse();
+        resp.setTableOrderId(order.getId());
+        resp.setTableId(order.getTableId());
+        resp.setOrderStatus(order.getStatus().name());
+        resp.setDiscount(order.getDiscount());
+        resp.setSurcharge(order.getSurcharge());
+        resp.setPromo(order.getPromo());
+        resp.setCustomerPhone(order.getCustomerPhone());
+        resp.setPaid(order.getPaid());
+        resp.setEntryTime(order.getEntryTime());
+        resp.setEntryDate(order.getEntryDate());
+
+        tableRepo.findById(order.getTableId()).ifPresent(table -> {
+            resp.setTableName(table.getName());
+            if (table.getArea() != null) {
+                resp.setAreaName(table.getArea().getName());
+            }
+        });
+
+        resp.setItems(mapItems(order.getItems(), true));
         return resp;
     }
 
@@ -91,9 +135,16 @@ public class TableOrderService {
         dto.setQuantity(item.getQuantity());
         dto.setNote(item.getNote());
         dto.setBatchNumber(item.getBatchNumber());
-        dto.setStatus(item.getStatus().name());
+        // Keep draft items with empty status in API to avoid showing a "DRAFT" label in UI.
+        dto.setStatus(item.getStatus() == TableOrderItem.ItemStatus.DRAFT ? "" : item.getStatus().name());
         dto.setCreatedAt(item.getCreatedAt());
         return dto;
+    }
+
+    private TableOrderSnapshotResponse reloadSnapshot(Long tableId) {
+        TableOrder refreshed = orderRepo.findByTableIdAndStatusWithItems(tableId, TableOrder.OrderStatus.OPEN)
+                .orElseThrow(() -> new RuntimeException("No active order for table: " + tableId));
+        return toSnapshotResponse(refreshed);
     }
 
     // ───────────────────────────────────────── UPSERT (backward compat for POS) ──
@@ -106,6 +157,7 @@ public class TableOrderService {
     @Transactional
     public KitchenOrderResponse saveOrderMeta(Long tableId, TableOrderDto dto) {
         TableOrder order = getOrCreateOpenOrder(tableId);
+        ensureEntryDateTime(order);
 
         order.setDiscount(dto.getDiscount());
         order.setSurcharge(dto.getSurcharge());
@@ -122,6 +174,96 @@ public class TableOrderService {
         return toResponse(order);
     }
 
+    public TableOrderSnapshotResponse getOrderSnapshot(Long tableId) {
+        TableOrder order = orderRepo.findByTableIdAndStatusWithItems(tableId, TableOrder.OrderStatus.OPEN)
+                .orElseThrow(() -> new RuntimeException("No active order for table: " + tableId));
+        return toSnapshotResponse(order);
+    }
+
+    @Transactional
+    public TableOrderSnapshotResponse addOrIncrementDraftItem(Long tableId, DraftItemRequest request) {
+        if (request.getProductId() == null) {
+            throw new RuntimeException("productId is required");
+        }
+        int qty = request.getQuantity() > 0 ? request.getQuantity() : 1;
+
+        TableOrder order = getOrCreateOpenOrder(tableId);
+        ensureEntryDateTime(order);
+        order = orderRepo.save(order);
+
+        Product product = productRepo.findById(request.getProductId())
+                .orElseThrow(() -> new RuntimeException("Product not found: " + request.getProductId()));
+
+        Optional<TableOrderItem> existingDraft = itemRepo.findByTableOrderIdAndProductIdAndStatus(
+                order.getId(),
+                request.getProductId(),
+                TableOrderItem.ItemStatus.DRAFT);
+
+        if (existingDraft.isPresent()) {
+            TableOrderItem item = existingDraft.get();
+            item.setQuantity(item.getQuantity() + qty);
+            if (request.getNote() != null && !request.getNote().isBlank()) {
+                item.setNote(request.getNote());
+            }
+            itemRepo.save(item);
+        } else {
+            TableOrderItem item = new TableOrderItem();
+            item.setTableOrder(order);
+            item.setProductId(product.getId());
+            item.setProductName(product.getName());
+            double rawPrice = product.getDiscountedPrice() > 0
+                    ? product.getDiscountedPrice()
+                    : product.getOriginalPrice();
+            item.setUnitPrice(BigDecimal.valueOf(rawPrice));
+            item.setQuantity(qty);
+            item.setNote(request.getNote() != null ? request.getNote() : "");
+            item.setBatchNumber(0);
+            item.setStatus(TableOrderItem.ItemStatus.DRAFT);
+            itemRepo.save(item);
+        }
+
+        return reloadSnapshot(tableId);
+        }
+
+        @Transactional
+        public TableOrderSnapshotResponse updateDraftItem(Long tableId, Long productId, DraftItemRequest request) {
+        int qty = request.getQuantity();
+        if (qty <= 0) {
+            throw new RuntimeException("quantity must be greater than 0");
+        }
+
+        TableOrder order = getOrCreateOpenOrder(tableId);
+        ensureEntryDateTime(order);
+        order = orderRepo.save(order);
+
+        TableOrderItem item = itemRepo.findByTableOrderIdAndProductIdAndStatus(
+                order.getId(),
+                productId,
+                TableOrderItem.ItemStatus.DRAFT)
+            .orElseThrow(() -> new RuntimeException("Draft item not found"));
+
+        item.setQuantity(qty);
+        item.setNote(request.getNote() != null ? request.getNote() : "");
+        itemRepo.save(item);
+
+        return reloadSnapshot(tableId);
+        }
+
+        @Transactional
+        public TableOrderSnapshotResponse removeDraftItem(Long tableId, Long productId) {
+        TableOrder order = orderRepo.findByTableIdAndStatus(tableId, TableOrder.OrderStatus.OPEN)
+            .orElseThrow(() -> new RuntimeException("No active order for table: " + tableId));
+
+        TableOrderItem item = itemRepo.findByTableOrderIdAndProductIdAndStatus(
+                order.getId(),
+                productId,
+                TableOrderItem.ItemStatus.DRAFT)
+            .orElseThrow(() -> new RuntimeException("Draft item not found"));
+
+        itemRepo.delete(item);
+        return reloadSnapshot(tableId);
+    }
+
     // ───────────────────────────────────────── SEND TO KITCHEN ──
 
     /**
@@ -135,46 +277,31 @@ public class TableOrderService {
 
         // table_orders is one-row-per-table; reopen CLOSED row instead of inserting
         TableOrder order = getOrCreateOpenOrder(tableId);
-        if (order.getEntryTime() == null || order.getEntryTime().isBlank()) {
-            java.time.LocalTime now = java.time.LocalTime.now();
-            order.setEntryTime(String.format("%02d:%02d", now.getHour(), now.getMinute()));
-        }
-        if (order.getEntryDate() == null || order.getEntryDate().isBlank()) {
-            order.setEntryDate(java.time.LocalDate.now().toString());
-        }
+        ensureEntryDateTime(order);
         order = orderRepo.save(order);
+
+        List<TableOrderItem> draftItems = itemRepo.findByTableOrderIdAndStatusOrderByCreatedAtAsc(
+            order.getId(),
+            TableOrderItem.ItemStatus.DRAFT);
+
+        if (draftItems.isEmpty()) {
+            throw new RuntimeException("No draft items to send");
+        }
 
         // Calculate next batch number
         int maxBatch = order.getItems().stream()
+            .filter(i -> i.getBatchNumber() != null && i.getBatchNumber() > 0)
                 .mapToInt(TableOrderItem::getBatchNumber)
                 .max()
                 .orElse(0);
         int newBatch = maxBatch + 1;
 
-        // Create items for this batch
-        List<TableOrderItem> newItems = new ArrayList<>();
-        for (SendToKitchenRequest.KitchenItem reqItem : request.getItems()) {
-            Product product = productRepo.findById(reqItem.getProductId())
-                    .orElseThrow(() -> new RuntimeException("Product not found: " + reqItem.getProductId()));
-
-            TableOrderItem item = new TableOrderItem();
-            item.setTableOrder(order);
-            item.setProductId(product.getId());
-            item.setProductName(product.getName());
-            // Snapshot price: use discounted price if > 0, else original
-            double rawPrice = product.getDiscountedPrice() > 0
-                    ? product.getDiscountedPrice()
-                    : product.getOriginalPrice();
-            item.setUnitPrice(BigDecimal.valueOf(rawPrice));
-            item.setQuantity(reqItem.getQuantity());
-            item.setNote(reqItem.getNote() != null ? reqItem.getNote() : "");
+        for (TableOrderItem item : draftItems) {
             item.setBatchNumber(newBatch);
             item.setStatus(TableOrderItem.ItemStatus.PENDING);
-
-            newItems.add(item);
         }
 
-        itemRepo.saveAll(newItems);
+        itemRepo.saveAll(draftItems);
 
         // STALE DATA FIX: Manually add new items to the order collection in memory
         // This ensures toResponse(order) includes them even if Hibernate session hasn't
@@ -182,13 +309,18 @@ public class TableOrderService {
         if (order.getItems() == null) {
             order.setItems(new ArrayList<>());
         }
-        order.getItems().addAll(newItems);
+        order.getItems().forEach(existing -> {
+            if (existing.getStatus() == TableOrderItem.ItemStatus.DRAFT) {
+                existing.setStatus(TableOrderItem.ItemStatus.PENDING);
+                existing.setBatchNumber(newBatch);
+            }
+        });
 
         // Draft items are now promoted to real kitchen items.
         order.setItemsJson(null);
         orderRepo.save(order);
 
-        KitchenOrderResponse response = toResponse(order);
+        KitchenOrderResponse response = toResponse(order, false);
 
         // Push SSE event to KDS
         kitchenSse.pushEvent("new-order", response);
@@ -206,6 +338,10 @@ public class TableOrderService {
     public TableOrderItemDto updateItemStatus(Long itemId, String newStatus) {
         TableOrderItem item = itemRepo.findById(itemId)
                 .orElseThrow(() -> new RuntimeException("Order item not found: " + itemId));
+
+        if (item.getStatus() == TableOrderItem.ItemStatus.DRAFT) {
+            throw new RuntimeException("Draft item cannot be updated by kitchen");
+        }
 
         TableOrderItem.ItemStatus status = TableOrderItem.ItemStatus.valueOf(newStatus.toUpperCase());
         item.setStatus(status);
@@ -251,7 +387,7 @@ public class TableOrderService {
     public List<KitchenOrderResponse> getAllActiveOrders() {
         List<TableOrder> orders = orderRepo.findAllByStatusWithItems(TableOrder.OrderStatus.OPEN);
         return orders.stream()
-                .map(this::toResponse)
+                .map(order -> toResponse(order, false))
                 .collect(Collectors.toList());
     }
 

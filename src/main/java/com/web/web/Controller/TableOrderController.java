@@ -42,6 +42,41 @@ public class TableOrderController {
         return ResponseEntity.ok(service.saveOrderMeta(tableId, dto));
     }
 
+    /** GET — Full snapshot for one table (meta + draft + sent items) */
+    @GetMapping("/{tableId}/snapshot")
+    public ResponseEntity<TableOrderSnapshotResponse> getSnapshot(@PathVariable Long tableId) {
+        try {
+            return ResponseEntity.ok(service.getOrderSnapshot(tableId));
+        } catch (RuntimeException e) {
+            return ResponseEntity.noContent().build();
+        }
+    }
+
+    /** POST — Add/increment a draft item immediately on click */
+    @PostMapping("/{tableId}/draft-items")
+    public ResponseEntity<TableOrderSnapshotResponse> addDraftItem(
+            @PathVariable Long tableId,
+            @RequestBody DraftItemRequest request) {
+        return ResponseEntity.ok(service.addOrIncrementDraftItem(tableId, request));
+    }
+
+    /** PUT — Update one draft item (quantity/note) */
+    @PutMapping("/{tableId}/draft-items/{productId}")
+    public ResponseEntity<TableOrderSnapshotResponse> updateDraftItem(
+            @PathVariable Long tableId,
+            @PathVariable Long productId,
+            @RequestBody DraftItemRequest request) {
+        return ResponseEntity.ok(service.updateDraftItem(tableId, productId, request));
+    }
+
+    /** DELETE — Remove one draft item */
+    @DeleteMapping("/{tableId}/draft-items/{productId}")
+    public ResponseEntity<TableOrderSnapshotResponse> removeDraftItem(
+            @PathVariable Long tableId,
+            @PathVariable Long productId) {
+        return ResponseEntity.ok(service.removeDraftItem(tableId, productId));
+    }
+
     /** DELETE active order (on cancel) */
     @DeleteMapping("/{tableId}")
     public ResponseEntity<Map<String, String>> delete(@PathVariable Long tableId) {
