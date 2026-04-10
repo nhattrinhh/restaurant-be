@@ -140,6 +140,7 @@ public class TableOrderService {
         // UI.
         dto.setStatus(item.getStatus() == TableOrderItem.ItemStatus.DRAFT ? "" : item.getStatus().name());
         dto.setCreatedAt(item.getCreatedAt());
+        dto.setUpdatedAt(item.getUpdatedAt());
         return dto;
     }
 
@@ -362,6 +363,8 @@ public class TableOrderService {
         tableRepo.findById(item.getTableOrder().getTableId()).ifPresent(table -> {
             event.put("tableName", table.getName());
         });
+        
+        event.put("updatedAt", dto.getUpdatedAt());
 
         kitchenSse.pushEvent("status-update", event);
 
