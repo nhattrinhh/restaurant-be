@@ -9,10 +9,11 @@ import java.util.Optional;
 
 @Repository
 public interface TableOrderItemRepository extends JpaRepository<TableOrderItem, Long> {
-	Optional<TableOrderItem> findByTableOrderIdAndProductIdAndStatus(
-			Long tableOrderId,
-			Long productId,
-			TableOrderItem.ItemStatus status);
+    Optional<TableOrderItem> findByTableOrderIdAndProductIdAndStatus(
+            Long tableOrderId,
+            Long productId,
+            TableOrderItem.ItemStatus status);
 
-	List<TableOrderItem> findByTableOrderIdAndStatusOrderByCreatedAtAsc(Long tableOrderId, TableOrderItem.ItemStatus status);
+    List<TableOrderItem> findByTableOrderIdAndStatusOrderByCreatedAtAsc(Long tableOrderId,
+            TableOrderItem.ItemStatus status);
 }

@@ -63,7 +63,8 @@ public class TableOrderService {
     private List<TableOrderItemDto> mapItems(List<TableOrderItem> items, boolean includeDraftItems) {
         return items.stream()
                 .filter(i -> includeDraftItems || i.getStatus() != TableOrderItem.ItemStatus.DRAFT)
-                .sorted(Comparator.comparing(TableOrderItem::getCreatedAt, Comparator.nullsLast(Comparator.naturalOrder())))
+                .sorted(Comparator.comparing(TableOrderItem::getCreatedAt,
+                        Comparator.nullsLast(Comparator.naturalOrder())))
                 .map(this::toItemDto)
                 .collect(Collectors.toList());
     }
@@ -135,7 +136,8 @@ public class TableOrderService {
         dto.setQuantity(item.getQuantity());
         dto.setNote(item.getNote());
         dto.setBatchNumber(item.getBatchNumber());
-        // Keep draft items with empty status in API to avoid showing a "DRAFT" label in UI.
+        // Keep draft items with empty status in API to avoid showing a "DRAFT" label in
+        // UI.
         dto.setStatus(item.getStatus() == TableOrderItem.ItemStatus.DRAFT ? "" : item.getStatus().name());
         dto.setCreatedAt(item.getCreatedAt());
         return dto;
@@ -223,10 +225,10 @@ public class TableOrderService {
         }
 
         return reloadSnapshot(tableId);
-        }
+    }
 
-        @Transactional
-        public TableOrderSnapshotResponse updateDraftItem(Long tableId, Long productId, DraftItemRequest request) {
+    @Transactional
+    public TableOrderSnapshotResponse updateDraftItem(Long tableId, Long productId, DraftItemRequest request) {
         int qty = request.getQuantity();
         if (qty <= 0) {
             throw new RuntimeException("quantity must be greater than 0");
@@ -240,25 +242,25 @@ public class TableOrderService {
                 order.getId(),
                 productId,
                 TableOrderItem.ItemStatus.DRAFT)
-            .orElseThrow(() -> new RuntimeException("Draft item not found"));
+                .orElseThrow(() -> new RuntimeException("Draft item not found"));
 
         item.setQuantity(qty);
         item.setNote(request.getNote() != null ? request.getNote() : "");
         itemRepo.save(item);
 
         return reloadSnapshot(tableId);
-        }
+    }
 
-        @Transactional
-        public TableOrderSnapshotResponse removeDraftItem(Long tableId, Long productId) {
+    @Transactional
+    public TableOrderSnapshotResponse removeDraftItem(Long tableId, Long productId) {
         TableOrder order = orderRepo.findByTableIdAndStatus(tableId, TableOrder.OrderStatus.OPEN)
-            .orElseThrow(() -> new RuntimeException("No active order for table: " + tableId));
+                .orElseThrow(() -> new RuntimeException("No active order for table: " + tableId));
 
         TableOrderItem item = itemRepo.findByTableOrderIdAndProductIdAndStatus(
                 order.getId(),
                 productId,
                 TableOrderItem.ItemStatus.DRAFT)
-            .orElseThrow(() -> new RuntimeException("Draft item not found"));
+                .orElseThrow(() -> new RuntimeException("Draft item not found"));
 
         itemRepo.delete(item);
         return reloadSnapshot(tableId);
@@ -281,8 +283,8 @@ public class TableOrderService {
         order = orderRepo.save(order);
 
         List<TableOrderItem> draftItems = itemRepo.findByTableOrderIdAndStatusOrderByCreatedAtAsc(
-            order.getId(),
-            TableOrderItem.ItemStatus.DRAFT);
+                order.getId(),
+                TableOrderItem.ItemStatus.DRAFT);
 
         if (draftItems.isEmpty()) {
             throw new RuntimeException("No draft items to send");
@@ -290,7 +292,7 @@ public class TableOrderService {
 
         // Calculate next batch number
         int maxBatch = order.getItems().stream()
-            .filter(i -> i.getBatchNumber() != null && i.getBatchNumber() > 0)
+                .filter(i -> i.getBatchNumber() != null && i.getBatchNumber() > 0)
                 .mapToInt(TableOrderItem::getBatchNumber)
                 .max()
                 .orElse(0);
