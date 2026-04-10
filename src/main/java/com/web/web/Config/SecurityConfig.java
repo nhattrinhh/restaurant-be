@@ -24,8 +24,11 @@ import org.springframework.http.HttpMethod;
 
 import java.util.Arrays;
 
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
+
 @Configuration(proxyBeanMethods = false)
 @EnableWebSecurity
+@EnableMethodSecurity
 public class SecurityConfig {
     private final UserRepository userRepository;
     private final JwtUtil jwtUtil;
@@ -98,7 +101,8 @@ public class SecurityConfig {
 
                         // ── STAFF + ADMIN + BOSS — quản lý bàn, đặt bàn, đơn hàng ─────────────
                         .requestMatchers("/api/booking/create", "/api/booking/history",
-                                "/api/booking/user/cancel/**", "/api/booking/{id}")
+                                "/api/booking/user/cancel/**", "/api/booking/detail/{id}",
+                                "/api/booking/check-availability")
                         .authenticated()
                         .requestMatchers("/api/booking/**").hasAnyRole("ADMIN", "STAFF", "BOSS")
                         .requestMatchers("/api/orders/admin").hasAnyRole("ADMIN", "STAFF", "BOSS")
@@ -108,6 +112,9 @@ public class SecurityConfig {
                         .hasAnyRole("ADMIN", "STAFF", "BOSS")
                         .requestMatchers("/api/table-areas/**", "/api/tables/**").hasAnyRole("ADMIN", "STAFF", "BOSS")
                         .requestMatchers("/api/table-invoices/**").hasAnyRole("ADMIN", "STAFF", "BOSS")
+                        // KDS kitchen stream + kitchen endpoints — KITCHEN role included
+                        .requestMatchers("/api/table-orders/kitchen/**").hasAnyRole("KITCHEN", "ADMIN", "STAFF", "BOSS")
+                        .requestMatchers("/api/table-orders/items/*/status").hasAnyRole("KITCHEN", "ADMIN", "STAFF", "BOSS")
                         .requestMatchers("/api/table-orders/**").hasAnyRole("ADMIN", "STAFF", "BOSS")
 
                         .anyRequest().authenticated())
@@ -133,7 +140,7 @@ public class SecurityConfig {
         CorsConfiguration configuration = new CorsConfiguration();
         configuration.setAllowedOrigins(
                 Arrays.asList("http://localhost:5173", "https://nhat.cloud", "https://api.nhat.cloud"));
-        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(Arrays.asList("*"));
         configuration.setAllowCredentials(true);
 

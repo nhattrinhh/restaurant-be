@@ -5,6 +5,7 @@ import com.web.web.Entity.Booking;
 import com.web.web.Service.BookingService;
 import jakarta.validation.Valid;
 
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.GrantedAuthority;
@@ -12,6 +13,8 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.List;
 import java.util.Map;
 
@@ -25,185 +28,216 @@ public class BookingController {
         this.bookingService = bookingService;
     }
 
-    // Người dùng đặt bàn
-    // @PostMapping("/create")
-    // public ResponseEntity<BookingDTO> createBooking(@AuthenticationPrincipal
-    // UserDetails userDetails,
-    // @Valid @RequestBody BookingDTO dto) {
-    // if (userDetails == null) {
-    // return ResponseEntity.status(401).build();
-    // }
-    // Booking booking = bookingService.createBooking(dto,
-    // userDetails.getUsername());
-    // return ResponseEntity.ok(toDTO(booking));
-    // }
+    // ══════════════════════════════════════════
+    // USER ENDPOINTS
+    // ══════════════════════════════════════════
 
+    /** Người dùng đặt bàn → tự động CONFIRMED */
     @PostMapping("/create")
-    public ResponseEntity<?> createBooking(@AuthenticationPrincipal UserDetails userDetails,
+    public ResponseEntity<?> createBooking(
+            @AuthenticationPrincipal UserDetails userDetails,
             @Valid @RequestBody BookingDTO dto) {
         if (userDetails == null) {
             return ResponseEntity.status(401).body(Map.of("message", "Unauthorized"));
         }
-
-        Booking booking = bookingService.createBooking(dto, userDetails.getUsername());
-        return ResponseEntity.status(201).body(Map.of("message", "Đặt bàn thành công", "data", toDTO(booking)));
+        try {
+            Booking booking = bookingService.createBooking(dto, userDetails.getUsername());
+            BookingDTO result = bookingService.getBookingById(
+                    booking.getId(), userDetails.getUsername(), false);
+            return ResponseEntity.status(201).body(Map.of(
+                    "message", "Đặt bàn thành công",
+                    "data", result));
+        } catch (RuntimeException e) {
+            e.printStackTrace();
+            String msg = e.getMessage() != null ? e.getMessage() : "Lỗi hệ thống (NullPointerException)";
+            return ResponseEntity.badRequest().body(Map.of("message", msg));
+        }
     }
 
-    // Người dùng xem lịch sử đặt bàn
+    /** Người dùng xem lịch sử đặt bàn */
     @GetMapping("/history")
-    public ResponseEntity<List<BookingDTO>> getUserBookings(@AuthenticationPrincipal UserDetails userDetails) {
+    public ResponseEntity<?> getUserBookings(@AuthenticationPrincipal UserDetails userDetails) {
         if (userDetails == null) {
-            return ResponseEntity.status(401).build();
+            return ResponseEntity.status(401).body(Map.of("message", "Unauthorized"));
         }
         List<BookingDTO> bookings = bookingService.getUserBookings(userDetails.getUsername());
         return ResponseEntity.ok(bookings);
     }
 
-    // Admin xem tất cả đơn đặt bàn
+    /** Người dùng xem chi tiết đơn đặt bàn */
+    @GetMapping("/detail/{id}")
+    public ResponseEntity<?> getBookingById(
+            @PathVariable Long id,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        if (userDetails == null) {
+            return ResponseEntity.status(401).body(Map.of("message", "Unauthorized"));
+        }
+        try {
+            boolean isStaff = hasStaffRole(userDetails);
+            BookingDTO bookingDTO = bookingService.getBookingById(
+                    id, userDetails.getUsername(), isStaff);
+            return ResponseEntity.ok(bookingDTO);
+        } catch (RuntimeException e) {
+            e.printStackTrace();
+            String msg = e.getMessage() != null ? e.getMessage() : "Lỗi hệ thống (NullPointerException)";
+            return ResponseEntity.badRequest().body(Map.of("message", msg));
+        }
+    }
+
+    /** Người dùng tự hủy đơn đặt bàn */
+    @PutMapping("/user/cancel/{id}")
+    public ResponseEntity<?> cancelBookingByUser(
+            @PathVariable Long id,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        if (userDetails == null) {
+            return ResponseEntity.status(401).body(Map.of("message", "Unauthorized"));
+        }
+        try {
+            BookingDTO result = bookingService.cancelBookingByUser(id, userDetails.getUsername());
+            return ResponseEntity.ok(Map.of(
+                    "message", "Đã hủy đơn đặt bàn thành công",
+                    "data", result));
+        } catch (RuntimeException e) {
+            e.printStackTrace();
+            String msg = e.getMessage() != null ? e.getMessage() : "Lỗi hệ thống (NullPointerException)";
+            return ResponseEntity.badRequest().body(Map.of("message", msg));
+        }
+    }
+
+    // ══════════════════════════════════════════
+    // ADMIN / STAFF / BOSS ENDPOINTS
+    // ══════════════════════════════════════════
+
+    /** Xem tất cả đơn đặt bàn */
     @GetMapping("/all")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'STAFF', 'BOSS')")
     public ResponseEntity<List<BookingDTO>> getAllBookings() {
         return ResponseEntity.ok(bookingService.getAllBookings());
     }
 
-    // Admin xem đặt bàn hôm nay (CONFIRMED) - dùng cho TableManager
+    /** Xem đặt bàn CONFIRMED hôm nay (cho TableManager panel) */
     @GetMapping("/today")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'STAFF', 'BOSS')")
     public ResponseEntity<List<BookingDTO>> getTodayBookings() {
-        java.time.LocalDate today = java.time.LocalDate.now();
-        List<com.web.web.Entity.Booking> bookings = bookingService.getConfirmedBookingsForDate(today);
-        List<BookingDTO> dtos = bookings.stream().map(this::toDTO).toList();
-        return ResponseEntity.ok(dtos);
+        LocalDate today = LocalDate.now();
+        List<Booking> bookings = bookingService.getConfirmedBookingsForDate(today);
+        // Reuse service toDTO via getBookingById is not efficient;
+        // Instead, get all bookings and filter
+        List<BookingDTO> allBookings = bookingService.getAllBookings();
+        List<BookingDTO> todayConfirmed = allBookings.stream()
+                .filter(b -> b.getBookingDate() != null && b.getBookingDate().equals(today)
+                        && "CONFIRMED".equals(b.getStatus()))
+                .toList();
+        return ResponseEntity.ok(todayConfirmed);
     }
 
-    // Admin và người dùng xem chi tiết đơn đặt bàn
-    @GetMapping("/{id}")
-    public ResponseEntity<BookingDTO> getBookingById(@PathVariable Long id,
-            @AuthenticationPrincipal UserDetails userDetails) {
-        if (userDetails == null) {
-            return ResponseEntity.status(401).build();
-        }
+    /** Kiểm tra bàn trống cho ngày + giờ cụ thể */
+    @GetMapping("/check-availability")
+    @PreAuthorize("permitAll()")
+    public ResponseEntity<?> checkTableAvailability(
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.TIME) LocalTime time) {
         try {
-            String role = userDetails.getAuthorities().stream()
-                    .map(GrantedAuthority::getAuthority)
-                    .filter(auth -> auth.equals("ROLE_ADMIN") || auth.equals("ROLE_USER"))
-                    .findFirst()
-                    .orElse("ROLE_USER");
-            BookingDTO bookingDTO = bookingService.getBookingById(id, userDetails.getUsername(), role);
-            return ResponseEntity.ok(bookingDTO);
+            Map<Long, Boolean> availability = bookingService.checkTableAvailability(date, time);
+            return ResponseEntity.ok(availability);
         } catch (RuntimeException e) {
-            return ResponseEntity.badRequest()
-                    .body(new BookingDTO(null, null, null, null, null, 0, null, null, null, null, e.getMessage()));
+            e.printStackTrace();
+            String msg = e.getMessage() != null ? e.getMessage() : "Lỗi hệ thống (NullPointerException)";
+            return ResponseEntity.badRequest().body(Map.of("message", msg));
         }
     }
 
-    // Admin xác nhận đơn đặt bàn
-    @PutMapping("/confirm/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<BookingDTO> confirmBooking(@PathVariable Long id) {
+    /** Nhân viên đánh dấu khách đã đến (check-in) */
+    @PutMapping("/check-in/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'STAFF', 'BOSS')")
+    public ResponseEntity<?> checkInBooking(@PathVariable Long id) {
         try {
-            return ResponseEntity.ok(bookingService.confirmBooking(id));
+            BookingDTO result = bookingService.checkInBooking(id);
+            return ResponseEntity.ok(Map.of(
+                    "message", "Đã đánh dấu khách đến thành công",
+                    "data", result));
         } catch (RuntimeException e) {
-            return ResponseEntity.notFound().build();
+            e.printStackTrace();
+            String msg = e.getMessage() != null ? e.getMessage() : "Lỗi hệ thống (NullPointerException)";
+            return ResponseEntity.badRequest().body(Map.of("message", msg));
         }
     }
 
-    // Admin hủy đơn đặt bàn
-    @PutMapping("/cancel/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<BookingDTO> cancelBooking(@PathVariable Long id) {
+    /** Nhân viên đánh dấu hoàn thành (đã thanh toán) */
+    @PutMapping("/complete/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'STAFF', 'BOSS')")
+    public ResponseEntity<?> completeBooking(@PathVariable Long id) {
         try {
-            return ResponseEntity.ok(bookingService.cancelBooking(id));
+            BookingDTO result = bookingService.completeBooking(id);
+            return ResponseEntity.ok(Map.of(
+                    "message", "Đã hoàn thành đơn đặt bàn",
+                    "data", result));
         } catch (RuntimeException e) {
-            return ResponseEntity.notFound().build();
+            e.printStackTrace();
+            String msg = e.getMessage() != null ? e.getMessage() : "Lỗi hệ thống (NullPointerException)";
+            return ResponseEntity.badRequest().body(Map.of("message", msg));
         }
     }
 
-    // Người dùng yêu cầu hủy đơn đặt bàn
-    @PutMapping("/user/cancel/{id}")
-    public ResponseEntity<BookingDTO> cancelBookingByUser(@PathVariable Long id,
-            @AuthenticationPrincipal UserDetails userDetails) {
-        if (userDetails == null) {
-            return ResponseEntity.status(401).build();
-        }
+    /** Nhân viên hủy đơn (bắt buộc có lý do) */
+    @PutMapping("/staff/cancel/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'STAFF', 'BOSS')")
+    public ResponseEntity<?> cancelBookingByStaff(
+            @PathVariable Long id,
+            @RequestBody Map<String, String> body) {
         try {
-            BookingDTO bookingDTO = bookingService.cancelBookingByUser(id, userDetails.getUsername());
-            return ResponseEntity.ok(bookingDTO);
+            String cancelReason = body.get("cancelReason");
+            BookingDTO result = bookingService.cancelBookingByStaff(id, cancelReason);
+            return ResponseEntity.ok(Map.of(
+                    "message", "Đã hủy đơn đặt bàn",
+                    "data", result));
         } catch (RuntimeException e) {
-            return ResponseEntity.badRequest()
-                    .body(new BookingDTO(null, null, null, null, null, 0, null, null, null, null, e.getMessage()));
+            e.printStackTrace();
+            String msg = e.getMessage() != null ? e.getMessage() : "Lỗi hệ thống (NullPointerException)";
+            return ResponseEntity.badRequest().body(Map.of("message", msg));
         }
     }
 
-    // Admin đồng ý hủy đơn đặt bàn
-    @PutMapping("/approve-cancel/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<BookingDTO> approveCancelBooking(@PathVariable Long id,
-            @AuthenticationPrincipal UserDetails userDetails) {
-        if (userDetails == null) {
-            return ResponseEntity.status(401).build();
-        }
+    /** Nhân viên đánh dấu no-show (khách không đến) */
+    @PutMapping("/no-show/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'STAFF', 'BOSS')")
+    public ResponseEntity<?> noShowBooking(@PathVariable Long id) {
         try {
-            String role = userDetails.getAuthorities().stream()
-                    .map(GrantedAuthority::getAuthority)
-                    .filter(auth -> auth.equals("ROLE_ADMIN"))
-                    .findFirst()
-                    .orElseThrow(() -> new RuntimeException("Chỉ admin mới có quyền đồng ý hủy đơn đặt bàn"));
-            BookingDTO bookingDTO = bookingService.approveCancelBooking(id, role);
-            return ResponseEntity.ok(bookingDTO);
+            BookingDTO result = bookingService.noShowBooking(id);
+            return ResponseEntity.ok(Map.of(
+                    "message", "Đã đánh dấu khách không đến",
+                    "data", result));
         } catch (RuntimeException e) {
-            return ResponseEntity.badRequest()
-                    .body(new BookingDTO(null, null, null, null, null, 0, null, null, null, null, e.getMessage()));
+            e.printStackTrace();
+            String msg = e.getMessage() != null ? e.getMessage() : "Lỗi hệ thống (NullPointerException)";
+            return ResponseEntity.badRequest().body(Map.of("message", msg));
         }
     }
 
-    // Admin từ chối hủy đơn đặt bàn
-    @PutMapping("/reject-cancel/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<BookingDTO> rejectCancelBooking(@PathVariable Long id,
-            @AuthenticationPrincipal UserDetails userDetails) {
-        if (userDetails == null) {
-            return ResponseEntity.status(401).build();
-        }
-        try {
-            String role = userDetails.getAuthorities().stream()
-                    .map(GrantedAuthority::getAuthority)
-                    .filter(auth -> auth.equals("ROLE_ADMIN"))
-                    .findFirst()
-                    .orElseThrow(() -> new RuntimeException("Chỉ admin mới có quyền từ chối hủy đơn đặt bàn"));
-            BookingDTO bookingDTO = bookingService.rejectCancelBooking(id, role);
-            return ResponseEntity.ok(bookingDTO);
-        } catch (RuntimeException e) {
-            return ResponseEntity.badRequest()
-                    .body(new BookingDTO(null, null, null, null, null, 0, null, null, null, null, e.getMessage()));
-        }
-    }
-
-    // Admin xóa đơn đặt bàn
+    /** Xóa đơn đặt bàn khỏi hệ thống */
     @DeleteMapping("/delete/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<Void> deleteBooking(@PathVariable Long id) {
+    @PreAuthorize("hasAnyRole('ADMIN', 'BOSS')")
+    public ResponseEntity<?> deleteBooking(@PathVariable Long id) {
         try {
             bookingService.deleteBooking(id);
-            return ResponseEntity.ok().build();
+            return ResponseEntity.ok(Map.of("message", "Đã xóa đơn đặt bàn"));
         } catch (RuntimeException e) {
-            return ResponseEntity.notFound().build();
+            e.printStackTrace();
+            String msg = e.getMessage() != null ? e.getMessage() : "Lỗi hệ thống (NullPointerException)";
+            return ResponseEntity.badRequest().body(Map.of("message", msg));
         }
     }
 
-    // Chuyển từ Entity sang DTO
-    private BookingDTO toDTO(Booking booking) {
-        return new BookingDTO(
-                booking.getId(),
-                booking.getFullName(),
-                booking.getPhoneNumber(),
-                booking.getBookingDate(),
-                booking.getBookingTime(),
-                booking.getNumberOfGuests(),
-                booking.getArea(),
-                booking.getSpecialRequests(),
-                booking.getCreatedAt(),
-                booking.getStatus().name(),
-                booking.getUser().getUsername());
+    // ══════════════════════════════════════════
+    // HELPER
+    // ══════════════════════════════════════════
+
+    /** Kiểm tra user có role ADMIN/STAFF/BOSS không */
+    private boolean hasStaffRole(UserDetails userDetails) {
+        return userDetails.getAuthorities().stream()
+                .map(GrantedAuthority::getAuthority)
+                .anyMatch(auth -> auth.equals("ROLE_ADMIN") ||
+                        auth.equals("ROLE_STAFF") ||
+                        auth.equals("ROLE_BOSS"));
     }
 }

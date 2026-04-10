@@ -30,11 +30,12 @@ public class Booking {
     @Column(nullable = false)
     private Integer numberOfGuests;
 
-    @Column
-    private String area;
-
-    @Column
+    @Column(columnDefinition = "TEXT")
     private String specialRequests;
+
+    // Lý do hủy (bắt buộc khi nhân viên hủy)
+    @Column(columnDefinition = "TEXT")
+    private String cancelReason;
 
     @Column(nullable = false)
     private LocalDateTime createdAt;
@@ -47,9 +48,19 @@ public class Booking {
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
+    // FK liên kết bàn cụ thể
+    @ManyToOne
+    @JoinColumn(name = "table_id")
+    private RestaurantTable table;
+
     public enum BookingStatus {
-        PENDING, CONFIRMED, CANCELLED, CANCEL_REQUESTED
+        CONFIRMED,      // Đã đặt (tự động khi submit)
+        CHECKED_IN,     // Khách đã đến
+        COMPLETED,      // Hoàn thành (đã thanh toán)
+        CANCELLED       // Đã hủy
     }
+
+    // ── Getters & Setters ──
 
     public Long getId() {
         return id;
@@ -99,20 +110,20 @@ public class Booking {
         this.numberOfGuests = numberOfGuests;
     }
 
-    public String getArea() {
-        return area;
-    }
-
-    public void setArea(String area) {
-        this.area = area;
-    }
-
     public String getSpecialRequests() {
         return specialRequests;
     }
 
     public void setSpecialRequests(String specialRequests) {
         this.specialRequests = specialRequests;
+    }
+
+    public String getCancelReason() {
+        return cancelReason;
+    }
+
+    public void setCancelReason(String cancelReason) {
+        this.cancelReason = cancelReason;
     }
 
     public LocalDateTime getCreatedAt() {
@@ -137,5 +148,13 @@ public class Booking {
 
     public void setUser(User user) {
         this.user = user;
+    }
+
+    public RestaurantTable getTable() {
+        return table;
+    }
+
+    public void setTable(RestaurantTable table) {
+        this.table = table;
     }
 }
