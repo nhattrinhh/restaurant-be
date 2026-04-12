@@ -7,9 +7,11 @@ import com.web.web.Dto.SetRecipeRequest;
 import com.web.web.Entity.User;
 import com.web.web.Exception.DataNotFoundException;
 import com.web.web.Service.RecipeService;
+import com.web.web.Service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -21,6 +23,9 @@ public class RecipeController {
     @Autowired
     private RecipeService recipeService;
 
+    @Autowired
+    private UserService userService;
+
     @GetMapping
     public ResponseEntity<RecipeResponse> getRecipe(@PathVariable Long productId) throws DataNotFoundException {
         return ResponseEntity.ok(recipeService.getRecipe(productId));
@@ -30,7 +35,8 @@ public class RecipeController {
     public ResponseEntity<RecipeResponse> setRecipe(
             @PathVariable Long productId,
             @RequestBody SetRecipeRequest request,
-            @AuthenticationPrincipal User user) throws Exception {
+            @AuthenticationPrincipal UserDetails userDetails) throws Exception {
+        User user = userService.findByUsername(userDetails.getUsername());
         return ResponseEntity.ok(recipeService.setRecipe(productId, request, user.getId()));
     }
 
@@ -43,7 +49,8 @@ public class RecipeController {
     public ResponseEntity<RecipeResponse> restoreRecipe(
             @PathVariable Long productId,
             @RequestBody RestoreRecipeRequest request,
-            @AuthenticationPrincipal User user) throws Exception {
+            @AuthenticationPrincipal UserDetails userDetails) throws Exception {
+        User user = userService.findByUsername(userDetails.getUsername());
         return ResponseEntity.ok(recipeService.restoreRecipe(productId, request, user.getId()));
     }
 }

@@ -30,11 +30,15 @@ public class IngredientController {
         return ResponseEntity.ok(ingredientService.getIngredientById(id));
     }
 
+    @Autowired
+    private com.web.web.Service.UserService userService;
+
     @PostMapping
     public ResponseEntity<IngredientResponse> createIngredient(
             @RequestBody CreateIngredientRequest request,
-            @AuthenticationPrincipal User user) throws DataNotFoundException {
+            @AuthenticationPrincipal org.springframework.security.core.userdetails.UserDetails userDetails) throws DataNotFoundException {
         // user.getId() from principal
+        User user = userService.findByUsername(userDetails.getUsername());
         return ResponseEntity.ok(ingredientService.createIngredient(request, user.getId()));
     }
 

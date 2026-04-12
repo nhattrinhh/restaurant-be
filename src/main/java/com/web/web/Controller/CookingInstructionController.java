@@ -22,11 +22,15 @@ public class CookingInstructionController {
         return ResponseEntity.ok(instructionService.getByProductId(productId));
     }
 
+    @Autowired
+    private com.web.web.Service.UserService userService;
+
     @PutMapping
     public ResponseEntity<CookingInstructionResponse> setInstruction(
             @PathVariable Long productId,
             @RequestBody SetCookingInstructionRequest request,
-            @AuthenticationPrincipal User user) throws DataNotFoundException {
+            @AuthenticationPrincipal org.springframework.security.core.userdetails.UserDetails userDetails) throws DataNotFoundException {
+        User user = userService.findByUsername(userDetails.getUsername());
         return ResponseEntity.ok(instructionService.setInstruction(productId, request, user.getId()));
     }
 }

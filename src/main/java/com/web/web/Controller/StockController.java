@@ -7,9 +7,11 @@ import com.web.web.Entity.Role;
 import com.web.web.Entity.User;
 import com.web.web.Exception.DataNotFoundException;
 import com.web.web.Service.StockTransactionService;
+import com.web.web.Service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -21,23 +23,28 @@ public class StockController {
     @Autowired
     private StockTransactionService stockService;
 
+    @Autowired
+    private UserService userService;
+
     @PostMapping("/import")
     public ResponseEntity<StockTransactionResponse> recordImport(
             @RequestBody StockImportRequest request,
-            @AuthenticationPrincipal User user) throws DataNotFoundException {
+            @AuthenticationPrincipal UserDetails userDetails) throws DataNotFoundException {
+        User user = userService.findByUsername(userDetails.getUsername());
         return ResponseEntity.ok(stockService.recordImport(request, user.getId()));
     }
 
     @PostMapping("/waste")
     public ResponseEntity<StockTransactionResponse> recordWaste(
             @RequestBody WasteRequest request,
-            @AuthenticationPrincipal User user) throws DataNotFoundException {
+            @AuthenticationPrincipal UserDetails userDetails) throws DataNotFoundException {
+        User user = userService.findByUsername(userDetails.getUsername());
         return ResponseEntity.ok(stockService.recordWaste(request, user.getId()));
     }
 
     @GetMapping("/transactions")
-    public ResponseEntity<List<StockTransactionResponse>> getTransactions(@AuthenticationPrincipal User user) {
-        // Mock role check. Will fetch true roles later.
+    public ResponseEntity<List<StockTransactionResponse>> getTransactions(@AuthenticationPrincipal UserDetails userDetails) {
+        User user = userService.findByUsername(userDetails.getUsername());
         boolean isAdmin = user.getRoles().stream().anyMatch(r -> r.getName().equals("ADMIN") || r.getName().equals("BOSS"));
         return ResponseEntity.ok(stockService.getTransactions(user.getId(), isAdmin));
     }
@@ -46,14 +53,16 @@ public class StockController {
     public ResponseEntity<StockTransactionResponse> updateTransaction(
             @PathVariable Long id,
             @RequestBody WasteRequest request, // reusing request wrapper to hold quantity/note
-            @AuthenticationPrincipal User user) throws DataNotFoundException {
+            @AuthenticationPrincipal UserDetails userDetails) throws DataNotFoundException {
+        User user = userService.findByUsername(userDetails.getUsername());
         return ResponseEntity.ok(stockService.updateTransaction(id, request.getQuantity(), request.getNote(), user.getId()));
     }
 
     @DeleteMapping("/transactions/{id}")
     public ResponseEntity<Void> deleteTransaction(
             @PathVariable Long id,
-            @AuthenticationPrincipal User user) throws DataNotFoundException {
+            @AuthenticationPrincipal UserDetails userDetails) throws DataNotFoundException {
+        User user = userService.findByUsername(userDetails.getUsername());
         stockService.deleteTransaction(id, user.getId());
         return ResponseEntity.noContent().build();
     }

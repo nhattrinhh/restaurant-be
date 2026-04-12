@@ -21,6 +21,7 @@ public class TableOrderController {
 
     private final TableOrderService service;
     private final KitchenSseService kitchenSseService;
+    private final com.web.web.Service.UserService userService;
 
     // ─────────────────────────── EXISTING ENDPOINTS (backward compat) ──
 
@@ -100,11 +101,12 @@ public class TableOrderController {
     public ResponseEntity<TableOrderItemDto> updateItemStatus(
             @PathVariable Long itemId,
             @RequestBody Map<String, String> body,
-            @AuthenticationPrincipal com.web.web.Entity.User user) {
+            @AuthenticationPrincipal org.springframework.security.core.userdetails.UserDetails userDetails) {
         String status = body.get("status");
         if (status == null || status.isBlank()) {
             return ResponseEntity.badRequest().build();
         }
+        com.web.web.Entity.User user = userService.findByUsername(userDetails.getUsername());
         TableOrderItemDto updated = service.updateItemStatus(itemId, status, user);
         return ResponseEntity.ok(updated);
     }

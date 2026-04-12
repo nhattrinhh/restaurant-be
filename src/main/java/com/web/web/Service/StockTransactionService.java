@@ -99,6 +99,7 @@ public class StockTransactionService {
         return mapToResponse(tx);
     }
 
+    @Transactional(readOnly = true)
     public List<StockTransactionResponse> getTransactions(Long userId, boolean isAdmin) {
         if (isAdmin) {
             return stockTransactionRepository.findAll().stream()
