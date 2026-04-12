@@ -7,6 +7,7 @@ import com.web.web.Service.TableOrderService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
@@ -98,12 +99,13 @@ public class TableOrderController {
     @PatchMapping("/items/{itemId}/status")
     public ResponseEntity<TableOrderItemDto> updateItemStatus(
             @PathVariable Long itemId,
-            @RequestBody Map<String, String> body) {
+            @RequestBody Map<String, String> body,
+            @AuthenticationPrincipal com.web.web.Entity.User user) {
         String status = body.get("status");
         if (status == null || status.isBlank()) {
             return ResponseEntity.badRequest().build();
         }
-        TableOrderItemDto updated = service.updateItemStatus(itemId, status);
+        TableOrderItemDto updated = service.updateItemStatus(itemId, status, user);
         return ResponseEntity.ok(updated);
     }
 

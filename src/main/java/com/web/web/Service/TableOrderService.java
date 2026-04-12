@@ -20,6 +20,9 @@ public class TableOrderService {
     private final ProductRepository productRepo;
     private final RestaurantTableRepository tableRepo;
     private final KitchenSseService kitchenSse;
+    private final RecipeService recipeService;
+    private final StockTransactionRepository stockTransactionRepo;
+    private final StockTransactionService stockTransactionService;
 
     /**
      * table_orders has UNIQUE(table_id), so each table must reuse the same row.
@@ -338,7 +341,7 @@ public class TableOrderService {
      * Pushes SSE event to KDS.
      */
     @Transactional
-    public TableOrderItemDto updateItemStatus(Long itemId, String newStatus) {
+    public TableOrderItemDto updateItemStatus(Long itemId, String newStatus, com.web.web.Entity.User user) {
         TableOrderItem item = itemRepo.findById(itemId)
                 .orElseThrow(() -> new RuntimeException("Order item not found: " + itemId));
 
@@ -346,9 +349,36 @@ public class TableOrderService {
             throw new RuntimeException("Draft item cannot be updated by kitchen");
         }
 
+        TableOrderItem.ItemStatus oldStatus = item.getStatus();
         TableOrderItem.ItemStatus status = TableOrderItem.ItemStatus.valueOf(newStatus.toUpperCase());
         item.setStatus(status);
         item = itemRepo.save(item);
+
+        // Quantification Logic
+        final TableOrderItem finalItem = item;
+        if (status == TableOrderItem.ItemStatus.DONE && oldStatus != TableOrderItem.ItemStatus.DONE) {
+            // Deduct stock
+            Long tableId = finalItem.getTableOrder().getTableId();
+            tableRepo.findById(tableId).ifPresent(t -> {
+                try {
+                    recipeService.deductStock(finalItem.getProductId(), finalItem.getQuantity(), user, finalItem, "KDS DONE - Bàn " + t.getName() + " - Lần gọi " + finalItem.getBatchNumber() + " - " + finalItem.getProductName());
+                } catch (Exception e) {
+                    throw new RuntimeException("Error deducting stock: " + e.getMessage());
+                }
+            });
+        } else if (status == TableOrderItem.ItemStatus.COOKING && oldStatus == TableOrderItem.ItemStatus.DONE) {
+            // Restore stock
+            List<StockTransaction> txs = stockTransactionRepo.findByRefItemIdAndIsDeletedFalse(item.getId());
+            for (StockTransaction tx : txs) {
+                tx.setDeleted(true);
+                stockTransactionRepo.save(tx);
+                try {
+                    stockTransactionService.replayStockQuantity(tx.getIngredient().getId());
+                } catch (Exception e) {
+                    throw new RuntimeException("Error replaying stock: " + e.getMessage());
+                }
+            }
+        }
 
         TableOrderItemDto dto = toItemDto(item);
 

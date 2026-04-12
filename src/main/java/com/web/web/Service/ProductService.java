@@ -42,6 +42,7 @@ public class ProductService {
         dto.setStatus(product.getStatus());
         dto.setCategoryId(product.getCategory() != null ? product.getCategory().getId() : null);
         dto.setCategoryName(product.getCategory() != null ? product.getCategory().getName() : null);
+        dto.setAvailable(product.isAvailable());
         return dto;
     }
 

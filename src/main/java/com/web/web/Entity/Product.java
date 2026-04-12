@@ -36,6 +36,9 @@ public class Product {
     @JoinColumn(name = "category_id")
     private Category category;
 
+    @Column(nullable = false, columnDefinition = "boolean default true")
+    private boolean isAvailable = true;
+
     public Long getId() {
         return id;
     }
@@ -114,5 +117,13 @@ public class Product {
 
     public void setCategory(Category category) {
         this.category = category;
+    }
+
+    public boolean isAvailable() {
+        return isAvailable;
+    }
+
+    public void setAvailable(boolean available) {
+        isAvailable = available;
     }
 }

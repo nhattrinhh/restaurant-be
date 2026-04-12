@@ -16,12 +16,13 @@ public class ProductDTO {
     private String status;
     private Long categoryId;
     private String categoryName;
+    private boolean isAvailable;
 
     public ProductDTO() {}
 
     public ProductDTO(Long id, String name, String description, double originalPrice, double discountedPrice,
                       double discount, Long productTypeId, String productTypeName, String img, String status,
-                      Long categoryId, String categoryName) {
+                      Long categoryId, String categoryName, boolean isAvailable) {
         this.id = id;
         this.name = name;
         this.description = description;
@@ -34,6 +35,7 @@ public class ProductDTO {
         this.status = status;
         this.categoryId = categoryId;
         this.categoryName = categoryName;
+        this.isAvailable = isAvailable;
     }
 
     public Long getId() {
@@ -130,5 +132,13 @@ public class ProductDTO {
 
     public void setCategoryName(String categoryName) {
         this.categoryName = categoryName;
+    }
+
+    public boolean isAvailable() {
+        return isAvailable;
+    }
+
+    public void setAvailable(boolean available) {
+        isAvailable = available;
     }
 }
