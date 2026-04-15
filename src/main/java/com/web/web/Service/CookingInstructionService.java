@@ -27,6 +27,7 @@ public class CookingInstructionService {
     @Autowired
     private UserRepository userRepository;
 
+    @Transactional(readOnly = true)
     public CookingInstructionResponse getByProductId(Long productId) throws DataNotFoundException {
         CookingInstruction instruction = cookingInstructionRepository.findByProductId(productId)
                 .orElseThrow(() -> new DataNotFoundException("Cooking instruction not found for this product"));

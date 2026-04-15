@@ -52,6 +52,7 @@ public class RecipeService {
 
     private final ObjectMapper objectMapper = new ObjectMapper();
 
+    @Transactional(readOnly = true)
     public RecipeResponse getRecipe(Long productId) throws DataNotFoundException {
         Product product = productRepository.findById(productId)
                 .orElseThrow(() -> new DataNotFoundException("Product not found"));
@@ -133,6 +134,7 @@ public class RecipeService {
         return getRecipe(productId);
     }
 
+    @Transactional(readOnly = true)
     public List<RecipeHistoryResponse> getHistory(Long productId) {
         return recipeHistoryRepository.findByProductIdOrderByVersionDesc(productId).stream()
                 .map(this::mapHistoryToResponse)

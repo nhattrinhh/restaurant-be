@@ -19,4 +19,11 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.PAYLOAD_TOO_LARGE).body(body);
     }
 
+    @ExceptionHandler(DataNotFoundException.class)
+    public ResponseEntity<Map<String, String>> handleDataNotFoundException(DataNotFoundException ex) {
+        Map<String, String> body = new HashMap<>();
+        body.put("error", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(body);
+    }
+
 }
