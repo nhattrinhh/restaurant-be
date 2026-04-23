@@ -33,7 +33,16 @@ public class TableOrderService {
                 .orElseGet(() -> orderRepo.findByTableId(tableId)
                         .map(existing -> {
                             existing.setStatus(TableOrder.OrderStatus.OPEN);
-                            if (existing.getItems() != null) {
+                            // Detach stock_transaction FK references before removing old items
+                            // to prevent DataIntegrityViolationException (FK constraint on ref_item_id)
+                            if (existing.getItems() != null && !existing.getItems().isEmpty()) {
+                                for (TableOrderItem oldItem : existing.getItems()) {
+                                    List<StockTransaction> txs = stockTransactionRepo.findByRefItemId(oldItem.getId());
+                                    for (StockTransaction tx : txs) {
+                                        tx.setRefItem(null);
+                                        stockTransactionRepo.save(tx);
+                                    }
+                                }
                                 existing.getItems().clear();
                             }
                             existing.setEntryTime(null);

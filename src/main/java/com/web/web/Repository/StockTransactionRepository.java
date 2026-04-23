@@ -10,4 +10,5 @@ public interface StockTransactionRepository extends JpaRepository<StockTransacti
     List<StockTransaction> findByIngredientIdAndIsDeletedFalse(Long ingredientId);
     List<StockTransaction> findByRecordedById(Long userId);
     List<StockTransaction> findByRefItemIdAndIsDeletedFalse(Long refItemId);
+    List<StockTransaction> findByRefItemId(Long refItemId);
 }
