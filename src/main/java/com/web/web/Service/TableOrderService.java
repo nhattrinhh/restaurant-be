@@ -36,6 +36,14 @@ public class TableOrderService {
                             if (existing.getItems() != null) {
                                 existing.getItems().clear();
                             }
+                            existing.setEntryTime(null);
+                            existing.setEntryDate(null);
+                            existing.setDiscount(0);
+                            existing.setSurcharge(0);
+                            existing.setPromo(0);
+                            existing.setCustomerPhone("");
+                            existing.setPaid(0);
+                            existing.setItemsJson(null);
                             return existing;
                         })
                         .orElseGet(() -> {
@@ -225,7 +233,11 @@ public class TableOrderService {
             item.setNote(request.getNote() != null ? request.getNote() : "");
             item.setBatchNumber(0);
             item.setStatus(TableOrderItem.ItemStatus.DRAFT);
-            itemRepo.save(item);
+            item = itemRepo.save(item);
+
+            if (order.getItems() != null) {
+                order.getItems().add(item);
+            }
         }
 
         return reloadSnapshot(tableId);
@@ -267,6 +279,11 @@ public class TableOrderService {
                 .orElseThrow(() -> new RuntimeException("Draft item not found"));
 
         itemRepo.delete(item);
+
+        if (order.getItems() != null) {
+            order.getItems().removeIf(i -> i.getId() != null && i.getId().equals(item.getId()));
+        }
+
         return reloadSnapshot(tableId);
     }
 
