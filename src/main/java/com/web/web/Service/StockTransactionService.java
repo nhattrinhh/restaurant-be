@@ -59,6 +59,9 @@ public class StockTransactionService {
         tx.setQuantity(request.getQuantity());
         tx.setNote(request.getNote());
         tx.setRecordedBy(user);
+        if (request.getCreatedAt() != null) {
+            tx.setCreatedAt(request.getCreatedAt());
+        }
         stockTransactionRepository.save(tx);
 
         triggerCheckAvailability(ingredient.getId());
@@ -92,6 +95,9 @@ public class StockTransactionService {
         tx.setQuantity(request.getQuantity());
         tx.setNote(request.getNote());
         tx.setRecordedBy(user);
+        if (request.getCreatedAt() != null) {
+            tx.setCreatedAt(request.getCreatedAt());
+        }
         stockTransactionRepository.save(tx);
 
         triggerCheckAvailability(ingredient.getId());

@@ -42,6 +42,8 @@ public class StockTransaction {
 
     @PrePersist
     protected void onCreate() {
-        createdAt = new Date();
+        if (createdAt == null) {
+            createdAt = new Date();
+        }
     }
 }
