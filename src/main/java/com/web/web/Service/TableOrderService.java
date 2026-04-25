@@ -30,37 +30,12 @@ public class TableOrderService {
      */
     private TableOrder getOrCreateOpenOrder(Long tableId) {
         return orderRepo.findByTableIdAndStatus(tableId, TableOrder.OrderStatus.OPEN)
-                .orElseGet(() -> orderRepo.findByTableId(tableId)
-                        .map(existing -> {
-                            existing.setStatus(TableOrder.OrderStatus.OPEN);
-                            // Detach stock_transaction FK references before removing old items
-                            // to prevent DataIntegrityViolationException (FK constraint on ref_item_id)
-                            if (existing.getItems() != null && !existing.getItems().isEmpty()) {
-                                for (TableOrderItem oldItem : existing.getItems()) {
-                                    List<StockTransaction> txs = stockTransactionRepo.findByRefItemId(oldItem.getId());
-                                    for (StockTransaction tx : txs) {
-                                        tx.setRefItem(null);
-                                        stockTransactionRepo.save(tx);
-                                    }
-                                }
-                                existing.getItems().clear();
-                            }
-                            existing.setEntryTime(null);
-                            existing.setEntryDate(null);
-                            existing.setDiscount(0);
-                            existing.setSurcharge(0);
-                            existing.setPromo(0);
-                            existing.setCustomerPhone("");
-                            existing.setPaid(0);
-                            existing.setItemsJson(null);
-                            return existing;
-                        })
-                        .orElseGet(() -> {
-                            TableOrder o = new TableOrder();
-                            o.setTableId(tableId);
-                            o.setStatus(TableOrder.OrderStatus.OPEN);
-                            return o;
-                        }));
+                .orElseGet(() -> {
+                    TableOrder o = new TableOrder();
+                    o.setTableId(tableId);
+                    o.setStatus(TableOrder.OrderStatus.OPEN);
+                    return o;
+                });
     }
 
     // ───────────────────────────────────────────────── GET helpers ──
@@ -464,18 +439,46 @@ public class TableOrderService {
                 .orElse(null);
 
         if (order != null) {
+            boolean hasChanges = false;
+            if (order.getItems() != null) {
+                for (TableOrderItem item : order.getItems()) {
+                    if (item.getStatus() != TableOrderItem.ItemStatus.DRAFT && item.getStatus() != TableOrderItem.ItemStatus.PAID) {
+                        item.setStatus(TableOrderItem.ItemStatus.PAID);
+                        hasChanges = true;
+                    }
+                }
+            }
+
+            if (hasChanges) {
+                // Reset order discount and extra fees so the next order iteration starts fresh
+                order.setDiscount(0);
+                order.setSurcharge(0);
+                order.setPromo(0);
+                order.setPaid(0);
+                
+                orderRepo.save(order);
+
+                // Update KDS seamlessly so it knows items might be paid off
+                KitchenOrderResponse response = toResponse(order, false);
+                kitchenSse.pushEvent("new-order", response);
+            }
+        }
+    }
+
+    /**
+     * Release a table: resets table to EMPTY.
+     */
+    @Transactional
+    public void releaseTable(Long tableId) {
+        TableOrder order = orderRepo.findByTableIdAndStatus(tableId, TableOrder.OrderStatus.OPEN)
+                .orElse(null);
+        if (order != null) {
+            // Either close it or keep it open?
+            // If they release an un-paid table, it should probably close the order too.
             order.setStatus(TableOrder.OrderStatus.CLOSED);
             orderRepo.save(order);
-
-            // Push SSE to KDS — remove all cards for this table
-            Map<String, Object> event = new HashMap<>();
-            event.put("tableId", tableId);
-            event.put("tableOrderId", order.getId());
-            event.put("action", "closed");
-            kitchenSse.pushEvent("order-closed", event);
         }
 
-        // Reset table status
         tableRepo.findById(tableId).ifPresent(table -> {
             table.setStatus(RestaurantTable.TableStatus.EMPTY);
             tableRepo.save(table);

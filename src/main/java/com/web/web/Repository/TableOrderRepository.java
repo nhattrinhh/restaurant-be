@@ -11,7 +11,6 @@ import java.util.Optional;
 @Repository
 public interface TableOrderRepository extends JpaRepository<TableOrder, Long> {
 
-    Optional<TableOrder> findByTableId(Long tableId);
 
     Optional<TableOrder> findByTableIdAndStatus(Long tableId, TableOrder.OrderStatus status);
 

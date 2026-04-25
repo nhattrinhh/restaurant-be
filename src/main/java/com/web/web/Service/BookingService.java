@@ -68,7 +68,7 @@ public class BookingService {
             if (dto.getBookingDate().equals(LocalDate.now())) {
                 boolean conflictWithOccupied = false;
                 try {
-                    com.web.web.Entity.TableOrder order = tableOrderRepository.findByTableId(table.getId())
+                    com.web.web.Entity.TableOrder order = tableOrderRepository.findByTableIdAndStatus(table.getId(), com.web.web.Entity.TableOrder.OrderStatus.OPEN)
                             .orElse(null);
                     if (order != null && order.getEntryTime() != null && !order.getEntryTime().isEmpty()) {
                         LocalTime entryTime = LocalTime.parse(order.getEntryTime());
@@ -177,7 +177,7 @@ public class BookingService {
                         if (date.equals(LocalDate.now())) {
                             boolean conflictWithOccupied = false;
                             try {
-                                com.web.web.Entity.TableOrder order = tableOrderRepository.findByTableId(table.getId())
+                                com.web.web.Entity.TableOrder order = tableOrderRepository.findByTableIdAndStatus(table.getId(), com.web.web.Entity.TableOrder.OrderStatus.OPEN)
                                         .orElse(null);
                                 if (order != null && order.getEntryTime() != null && !order.getEntryTime().isEmpty()) {
                                     LocalTime entryTime = LocalTime.parse(order.getEntryTime());

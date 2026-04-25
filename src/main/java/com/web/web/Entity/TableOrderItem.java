@@ -58,6 +58,6 @@ public class TableOrderItem {
     }
 
     public enum ItemStatus {
-        DRAFT, PENDING, COOKING, DONE, SERVED, CANCELLED
+        DRAFT, PENDING, COOKING, DONE, PAID, SERVED, CANCELLED
     }
 }

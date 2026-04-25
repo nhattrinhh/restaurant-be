@@ -138,6 +138,13 @@ public class TableOrderController {
     @PostMapping("/{tableId}/close")
     public ResponseEntity<Map<String, String>> closeOrder(@PathVariable Long tableId) {
         service.closeOrder(tableId);
-        return ResponseEntity.ok(Map.of("message", "Order closed, table reset"));
+        return ResponseEntity.ok(Map.of("message", "Order closed, table keeps occupied"));
+    }
+
+    /** POST - Release table */
+    @PostMapping("/{tableId}/release")
+    public ResponseEntity<Map<String, String>> releaseTable(@PathVariable Long tableId) {
+        service.releaseTable(tableId);
+        return ResponseEntity.ok(Map.of("message", "Table released"));
     }
 }
