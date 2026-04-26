@@ -63,7 +63,7 @@ public class SecurityConfig {
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-                .csrf(csrf -> csrf.ignoringRequestMatchers("/api/sepay/**").disable())
+                .csrf(csrf -> csrf.ignoringRequestMatchers("/api/sepay/**", "/api/payment/sepay/**").disable())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         // ── Allow CORS preflight (OPTIONS) for all endpoints ─────────────────────
@@ -79,6 +79,9 @@ public class SecurityConfig {
                         .requestMatchers("/api/news", "/api/news/search").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/table-areas/**", "/api/tables/**").permitAll()
                         .requestMatchers("/api/sepay/**").permitAll()
+                        // SePay Payment Gateway — IPN webhook permitAll, init vẫn cần đăng nhập
+                        .requestMatchers(HttpMethod.POST, "/api/payment/sepay/ipn").permitAll()
+                        .requestMatchers("/api/payment/sepay/init").authenticated()
 
                         // ── Đã đăng nhập ─────────────────────────────────────────────────────────
                         .requestMatchers("/api/user/profile", "/api/user/change-password").authenticated()
@@ -114,14 +117,21 @@ public class SecurityConfig {
                         .requestMatchers("/api/table-invoices/**").hasAnyRole("ADMIN", "STAFF", "BOSS")
                         // KDS kitchen stream + kitchen endpoints — KITCHEN role included
                         .requestMatchers("/api/table-orders/kitchen/**").hasAnyRole("KITCHEN", "ADMIN", "STAFF", "BOSS")
-                        .requestMatchers("/api/table-orders/items/*/status").hasAnyRole("KITCHEN", "ADMIN", "STAFF", "BOSS")
+                        .requestMatchers("/api/table-orders/items/*/status")
+                        .hasAnyRole("KITCHEN", "ADMIN", "STAFF", "BOSS")
                         .requestMatchers("/api/table-orders/**").hasAnyRole("ADMIN", "STAFF", "BOSS")
 
                         // ── KITCHEN + ADMIN — Định lượng & Kho ──────────────────────────────────
-                        .requestMatchers(HttpMethod.GET, "/api/v1/ingredients/**", "/api/v1/products/*/recipe", "/api/v1/products/*/instruction").hasAnyRole("ADMIN", "BOSS", "KITCHEN")
-                        .requestMatchers("/api/v1/ingredients/**", "/api/v1/products/*/recipe", "/api/v1/products/*/instruction").hasAnyRole("ADMIN", "BOSS")
-                        .requestMatchers(HttpMethod.POST, "/api/v1/stock/import", "/api/v1/stock/waste").hasAnyRole("KITCHEN")
-                        .requestMatchers(HttpMethod.GET, "/api/v1/stock/transactions").hasAnyRole("ADMIN", "BOSS", "KITCHEN")
+                        .requestMatchers(HttpMethod.GET, "/api/v1/ingredients/**", "/api/v1/products/*/recipe",
+                                "/api/v1/products/*/instruction")
+                        .hasAnyRole("ADMIN", "BOSS", "KITCHEN")
+                        .requestMatchers("/api/v1/ingredients/**", "/api/v1/products/*/recipe",
+                                "/api/v1/products/*/instruction")
+                        .hasAnyRole("ADMIN", "BOSS")
+                        .requestMatchers(HttpMethod.POST, "/api/v1/stock/import", "/api/v1/stock/waste")
+                        .hasAnyRole("KITCHEN")
+                        .requestMatchers(HttpMethod.GET, "/api/v1/stock/transactions")
+                        .hasAnyRole("ADMIN", "BOSS", "KITCHEN")
                         .requestMatchers("/api/v1/stock/transactions/**").hasAnyRole("ADMIN", "BOSS")
 
                         .anyRequest().authenticated())

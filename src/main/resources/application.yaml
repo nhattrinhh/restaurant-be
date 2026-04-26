@@ -30,7 +30,6 @@ spring:
       max-file-size: 50MB
       max-request-size: 50MB
 
-
   # Security / OAuth2 — Secrets lấy từ .env hoặc môi trường thực
   security:
     oauth2:
@@ -74,6 +73,18 @@ jwt:
 groq:
   api:
     key: ${GROQ_API_KEY}
+
+# SePay Payment Gateway settings
+sepay:
+  merchant-id: ${SEPAY_MERCHANT_ID:}
+  secret-key: ${SEPAY_SECRET_KEY:}
+  # API endpoint BE gọi với Basic Auth để tạo session checkout
+  api-url: ${SEPAY_API_URL:https://pgapi-sandbox.sepay.vn/v1/checkout/init}
+  # Checkout UI base (tham chiếu; URL thực tế SePay trả về trong response)
+  checkout-url: ${SEPAY_CHECKOUT_URL:https://pay-sandbox.sepay.vn}
+  return-base-url: ${SEPAY_RETURN_BASE_URL:http://localhost:5173}
+  ipn-url: ${SEPAY_IPN_URL:http://localhost:8080/api/payment/sepay/ipn}
+  currency: ${SEPAY_CURRENCY:VND}
 
 # Logging configuration — cho phép override qua môi trường
 logging:
