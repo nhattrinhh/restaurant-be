@@ -4,6 +4,7 @@ import jakarta.validation.constraints.*;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.util.List;
 
 public class BookingDTO {
 
@@ -64,6 +65,8 @@ public class BookingDTO {
     private String status;
 
     private String username;
+
+    private List<OrderItemDTO> orderedItems;
 
     // ── Constructors ──
 
@@ -135,4 +138,7 @@ public class BookingDTO {
 
     public String getUsername() { return username; }
     public void setUsername(String username) { this.username = username; }
+
+    public List<OrderItemDTO> getOrderedItems() { return orderedItems; }
+    public void setOrderedItems(List<OrderItemDTO> orderedItems) { this.orderedItems = orderedItems; }
 }

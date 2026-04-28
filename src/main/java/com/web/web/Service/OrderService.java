@@ -6,6 +6,7 @@ import com.web.web.Repository.OrderRepository;
 import com.web.web.Repository.PaymentRepository;
 import com.web.web.Repository.ProductRepository;
 import com.web.web.Repository.UserRepository;
+import com.web.web.Repository.BookingRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -23,21 +24,23 @@ public class OrderService {
     private final ProductRepository productRepository;
     private final PaymentRepository paymentRepository;
     private final CartService cartService;
+    private final BookingRepository bookingRepository;
 
     @Autowired
     public OrderService(OrderRepository orderRepository, UserRepository userRepository,
                         ProductRepository productRepository, PaymentRepository paymentRepository,
-                        CartService cartService) {
+                        CartService cartService, BookingRepository bookingRepository) {
         this.orderRepository = orderRepository;
         this.userRepository = userRepository;
         this.productRepository = productRepository;
         this.paymentRepository = paymentRepository;
         this.cartService = cartService;
+        this.bookingRepository = bookingRepository;
     }
 
     // Đặt hàng từ giỏ hàng
     @Transactional
-    public OrderDTO createOrder(Long userId, String deliveryAddress, String paymentMethod) {
+    public OrderDTO createOrder(Long userId, String deliveryAddress, String paymentMethod, Long bookingId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("Người dùng không tồn tại"));
 
@@ -63,6 +66,11 @@ public class OrderService {
         order.setOrderDate(LocalDateTime.now());
         order.setPaymentStatus(Order.PaymentStatus.PENDING);
         order.setOrderStatus(Order.OrderStatus.PENDING);
+
+        if (bookingId != null) {
+            Booking booking = bookingRepository.findById(bookingId).orElse(null);
+            order.setBooking(booking);
+        }
 
         List<OrderItem> orderItems = new ArrayList<>();
         double totalAmount = 0.0;
@@ -95,7 +103,7 @@ public class OrderService {
 
     // Đặt hàng trực tiếp từ sản phẩm
     @Transactional
-    public OrderDTO createOrderFromProduct(Long userId, Long productId, int quantity, String deliveryAddress, String paymentMethod) {
+    public OrderDTO createOrderFromProduct(Long userId, Long productId, int quantity, String deliveryAddress, String paymentMethod, Long bookingId) {
         // Validate user
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("Người dùng không tồn tại"));
@@ -132,6 +140,11 @@ public class OrderService {
         order.setOrderDate(LocalDateTime.now());
         order.setPaymentStatus(Order.PaymentStatus.PENDING);
         order.setOrderStatus(Order.OrderStatus.PENDING);
+
+        if (bookingId != null) {
+            Booking booking = bookingRepository.findById(bookingId).orElse(null);
+            order.setBooking(booking);
+        }
 
         // Create OrderItem
         List<OrderItem> orderItems = new ArrayList<>();

@@ -63,10 +63,10 @@ public class OrderController {
     public ResponseEntity<ResponseDTO<OrderDTO>> createOrder(@Valid @RequestBody OrderRequest orderRequest) {
         try {
             Long userId = getCurrentUserId();
-            logger.info("Creating order for user {} with delivery address: {} and payment method: {}",
-                    userId, orderRequest.getDeliveryAddress(), orderRequest.getPaymentMethod());
+            logger.info("Creating order for user {} with delivery address: {}, payment method: {}, bookingId: {}",
+                    userId, orderRequest.getDeliveryAddress(), orderRequest.getPaymentMethod(), orderRequest.getBookingId());
             OrderDTO order = orderService.createOrder(userId, orderRequest.getDeliveryAddress(),
-                    orderRequest.getPaymentMethod());
+                    orderRequest.getPaymentMethod(), orderRequest.getBookingId());
             return ResponseEntity.status(201).body(new ResponseDTO<>("Đặt hàng thành công", order));
         } catch (IllegalArgumentException e) {
             logger.error("Bad request: {}", e.getMessage());
@@ -85,12 +85,12 @@ public class OrderController {
         try {
             Long userId = getCurrentUserId();
             logger.info(
-                    "Creating order from product for user {} with productId: {}, quantity: {}, delivery address: {}, and payment method: {}",
+                    "Creating order from product for user {} with productId: {}, quantity: {}, delivery address: {}, payment method: {}, bookingId: {}",
                     userId, orderRequest.getProductId(), orderRequest.getQuantity(), orderRequest.getDeliveryAddress(),
-                    orderRequest.getPaymentMethod());
+                    orderRequest.getPaymentMethod(), orderRequest.getBookingId());
             OrderDTO order = orderService.createOrderFromProduct(userId, orderRequest.getProductId(),
                     orderRequest.getQuantity(),
-                    orderRequest.getDeliveryAddress(), orderRequest.getPaymentMethod());
+                    orderRequest.getDeliveryAddress(), orderRequest.getPaymentMethod(), orderRequest.getBookingId());
             return ResponseEntity.status(201)
                     .body(new ResponseDTO<>("Đặt hàng trực tiếp từ sản phẩm thành công", order));
         } catch (IllegalArgumentException e) {
@@ -266,8 +266,9 @@ class OrderRequest {
     private String deliveryAddress;
 
     @NotBlank(message = "Hình thức thanh toán không được để trống")
-
     private String paymentMethod;
+
+    private Long bookingId;
 
     // Getters and setters
     public String getDeliveryAddress() {
@@ -285,6 +286,14 @@ class OrderRequest {
     public void setPaymentMethod(String paymentMethod) {
         this.paymentMethod = paymentMethod;
     }
+
+    public Long getBookingId() {
+        return bookingId;
+    }
+
+    public void setBookingId(Long bookingId) {
+        this.bookingId = bookingId;
+    }
 }
 
 class OrderFromProductRequest {
@@ -299,8 +308,9 @@ class OrderFromProductRequest {
     private String deliveryAddress;
 
     @NotBlank(message = "Hình thức thanh toán không được để trống")
-
     private String paymentMethod;
+
+    private Long bookingId;
 
     // Getters and setters
     public Long getProductId() {
@@ -333,6 +343,14 @@ class OrderFromProductRequest {
 
     public void setPaymentMethod(String paymentMethod) {
         this.paymentMethod = paymentMethod;
+    }
+
+    public Long getBookingId() {
+        return bookingId;
+    }
+
+    public void setBookingId(Long bookingId) {
+        this.bookingId = bookingId;
     }
 }
 

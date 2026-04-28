@@ -106,9 +106,9 @@ public class SePayPaymentController {
             OrderDTO order;
             if (req.getProductId() != null && req.getQuantity() != null && req.getQuantity() > 0) {
                 order = orderService.createOrderFromProduct(userId, req.getProductId(), req.getQuantity(),
-                        deliveryAddress, paymentMethod);
+                        deliveryAddress, paymentMethod, req.getBookingId());
             } else {
-                order = orderService.createOrder(userId, deliveryAddress, paymentMethod);
+                order = orderService.createOrder(userId, deliveryAddress, paymentMethod, req.getBookingId());
             }
 
             long amountLong = (long) order.getTotalAmount();

@@ -9,6 +9,10 @@ import com.web.web.Repository.BookingRepository;
 import com.web.web.Repository.RestaurantTableRepository;
 import com.web.web.Repository.TableOrderRepository;
 import com.web.web.Repository.UserRepository;
+import com.web.web.Repository.OrderRepository;
+import com.web.web.Dto.OrderItemDTO;
+import com.web.web.Entity.Order;
+import com.web.web.Entity.OrderItem;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -19,6 +23,7 @@ import java.time.LocalTime;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+import java.util.ArrayList;
 
 @Service
 public class BookingService {
@@ -32,16 +37,19 @@ public class BookingService {
     private final UserRepository userRepository;
     private final RestaurantTableRepository tableRepository;
     private final TableOrderRepository tableOrderRepository;
+    private final OrderRepository orderRepository;
 
     @Autowired
     public BookingService(BookingRepository bookingRepository,
             UserRepository userRepository,
             RestaurantTableRepository tableRepository,
-            TableOrderRepository tableOrderRepository) {
+            TableOrderRepository tableOrderRepository,
+            OrderRepository orderRepository) {
         this.bookingRepository = bookingRepository;
         this.userRepository = userRepository;
         this.tableRepository = tableRepository;
         this.tableOrderRepository = tableOrderRepository;
+        this.orderRepository = orderRepository;
     }
 
     // ══════════════════════════════════════════
@@ -126,6 +134,7 @@ public class BookingService {
     // ══════════════════════════════════════════
 
     /** Người dùng xem lịch sử đặt bàn của mình */
+    @Transactional(readOnly = true)
     public List<BookingDTO> getUserBookings(String username) {
         return bookingRepository.findByUserUsername(username).stream()
                 .map(this::toDTO)
@@ -133,6 +142,7 @@ public class BookingService {
     }
 
     /** Admin/Staff/Boss xem tất cả đơn đặt bàn */
+    @Transactional(readOnly = true)
     public List<BookingDTO> getAllBookings() {
         return bookingRepository.findAll().stream()
                 .map(this::toDTO)
@@ -140,12 +150,14 @@ public class BookingService {
     }
 
     /** Lấy booking CONFIRMED theo ngày (cho TableManager panel) */
+    @Transactional(readOnly = true)
     public List<Booking> getConfirmedBookingsForDate(LocalDate date) {
         return bookingRepository.findByBookingDateAndStatusOrderByBookingTimeAsc(
                 date, BookingStatus.CONFIRMED);
     }
 
     /** Xem chi tiết đơn — admin/staff/boss xem tất cả, user chỉ xem của mình */
+    @Transactional(readOnly = true)
     public BookingDTO getBookingById(Long id, String username, boolean isStaff) {
         Booking booking = findBookingOrThrow(id);
 
@@ -361,7 +373,7 @@ public class BookingService {
             }
         }
 
-        return new BookingDTO(
+        BookingDTO dto = new BookingDTO(
                 booking.getId(),
                 booking.getFullName(),
                 booking.getPhoneNumber(),
@@ -376,5 +388,28 @@ public class BookingService {
                 booking.getCreatedAt(),
                 booking.getStatus().name(),
                 booking.getUser().getUsername());
+
+        // Fetch Order items
+        List<Order> orders = orderRepository.findByBookingId(booking.getId());
+        List<OrderItemDTO> orderedItems = new ArrayList<>();
+        if (orders != null && !orders.isEmpty()) {
+            for (Order order : orders) {
+                if (order.getOrderItems() != null) {
+                    for (OrderItem item : order.getOrderItems()) {
+                        OrderItemDTO itemDto = new OrderItemDTO();
+                        itemDto.setId(item.getId());
+                        itemDto.setProductId(item.getProduct().getId());
+                        itemDto.setProductName(item.getProduct().getName());
+                        itemDto.setQuantity(item.getQuantity());
+                        itemDto.setProductImage(item.getProduct().getImg());
+                        itemDto.setUnitPrice(item.getUnitPrice());
+                        itemDto.setSubtotal(item.getSubtotal());
+                        orderedItems.add(itemDto);
+                    }
+                }
+            }
+        }
+        dto.setOrderedItems(orderedItems);
+        return dto;
     }
 }
