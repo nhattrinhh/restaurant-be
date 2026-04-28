@@ -1,4 +1,5 @@
 package com.web.web.Service;
+
 import com.web.web.Dto.OrderDTO;
 import com.web.web.Dto.OrderItemDTO;
 import com.web.web.Entity.*;
@@ -28,8 +29,8 @@ public class OrderService {
 
     @Autowired
     public OrderService(OrderRepository orderRepository, UserRepository userRepository,
-                        ProductRepository productRepository, PaymentRepository paymentRepository,
-                        CartService cartService, BookingRepository bookingRepository) {
+            ProductRepository productRepository, PaymentRepository paymentRepository,
+            CartService cartService, BookingRepository bookingRepository) {
         this.orderRepository = orderRepository;
         this.userRepository = userRepository;
         this.productRepository = productRepository;
@@ -52,7 +53,8 @@ public class OrderService {
         // Validate payment method
         Payment.PaymentMethod paymentMethodEnum;
         try {
-            paymentMethodEnum = Payment.PaymentMethod.valueOf(paymentMethod.toUpperCase());
+            String normalized = paymentMethod == null ? "" : paymentMethod.trim().toUpperCase();
+            paymentMethodEnum = Payment.PaymentMethod.valueOf(normalized);
         } catch (IllegalArgumentException e) {
             throw new IllegalArgumentException("Hình thức thanh toán không hợp lệ");
         }
@@ -80,7 +82,8 @@ public class OrderService {
             orderItem.setOrder(order);
             orderItem.setProduct(product);
             orderItem.setQuantity(cartItem.getQuantity());
-            orderItem.setUnitPrice(product.getDiscountedPrice() > 0 ? product.getDiscountedPrice() : product.getOriginalPrice());
+            orderItem.setUnitPrice(
+                    product.getDiscountedPrice() > 0 ? product.getDiscountedPrice() : product.getOriginalPrice());
             orderItem.updateSubtotal();
             orderItems.add(orderItem);
             totalAmount += orderItem.getSubtotal();
@@ -103,7 +106,8 @@ public class OrderService {
 
     // Đặt hàng trực tiếp từ sản phẩm
     @Transactional
-    public OrderDTO createOrderFromProduct(Long userId, Long productId, int quantity, String deliveryAddress, String paymentMethod, Long bookingId) {
+    public OrderDTO createOrderFromProduct(Long userId, Long productId, int quantity, String deliveryAddress,
+            String paymentMethod, Long bookingId) {
         // Validate user
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("Người dùng không tồn tại"));
@@ -125,7 +129,8 @@ public class OrderService {
         // Validate payment method
         Payment.PaymentMethod paymentMethodEnum;
         try {
-            paymentMethodEnum = Payment.PaymentMethod.valueOf(paymentMethod.toUpperCase());
+            String normalized = paymentMethod == null ? "" : paymentMethod.trim().toUpperCase();
+            paymentMethodEnum = Payment.PaymentMethod.valueOf(normalized);
         } catch (IllegalArgumentException e) {
             throw new IllegalArgumentException("Hình thức thanh toán không hợp lệ");
         }
@@ -152,7 +157,8 @@ public class OrderService {
         orderItem.setOrder(order);
         orderItem.setProduct(product);
         orderItem.setQuantity(quantity);
-        orderItem.setUnitPrice(product.getDiscountedPrice() > 0 ? product.getDiscountedPrice() : product.getOriginalPrice());
+        orderItem.setUnitPrice(
+                product.getDiscountedPrice() > 0 ? product.getDiscountedPrice() : product.getOriginalPrice());
         orderItem.updateSubtotal();
         orderItems.add(orderItem);
 
@@ -231,7 +237,8 @@ public class OrderService {
         if (!order.getUser().getId().equals(userId)) {
             throw new IllegalArgumentException("Bạn không có quyền hủy đơn hàng này");
         }
-        if (order.getOrderStatus() != Order.OrderStatus.PENDING && order.getOrderStatus() != Order.OrderStatus.CONFIRMED) {
+        if (order.getOrderStatus() != Order.OrderStatus.PENDING
+                && order.getOrderStatus() != Order.OrderStatus.CONFIRMED) {
             throw new IllegalArgumentException("Chỉ có thể hủy đơn hàng ở trạng thái Chờ xác nhận hoặc Đã xác nhận");
         }
         order.setOrderStatus(Order.OrderStatus.CANCEL_REQUESTED);

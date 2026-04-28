@@ -51,8 +51,8 @@ public class BookingDTO {
     // Thông tin bàn — FE gửi tableId, BE trả về cả tableName + areaName
     @NotNull(message = "Vui lòng chọn bàn")
     private Long tableId;
-    private String tableName;  // Tên bàn (VD: "Bàn 01") — chỉ dùng cho response
-    private String areaName;   // Tên khu vực (VD: "PHÒNG VIP") — chỉ dùng cho response
+    private String tableName; // Tên bàn (VD: "Bàn 01") — chỉ dùng cho response
+    private String areaName; // Tên khu vực (VD: "PHÒNG VIP") — chỉ dùng cho response
 
     // Lý do hủy (bắt buộc khi NV hủy)
     private String cancelReason;
@@ -60,13 +60,15 @@ public class BookingDTO {
     // Metadata
     private LocalDateTime createdAt;
 
-    @Pattern(regexp = "^(CONFIRMED|CHECKED_IN|COMPLETED|CANCELLED)$",
-            message = "Trạng thái phải là CONFIRMED, CHECKED_IN, COMPLETED hoặc CANCELLED")
+    @Pattern(regexp = "^(CONFIRMED|CHECKED_IN|COMPLETED|CANCELLED)$", message = "Trạng thái phải là CONFIRMED, CHECKED_IN, COMPLETED hoặc CANCELLED")
     private String status;
 
     private String username;
 
     private List<OrderItemDTO> orderedItems;
+
+    // Hinh thuc thanh toan (lay tu payments khi co order)
+    private String paymentMethod;
 
     // ── Constructors ──
 
@@ -74,11 +76,11 @@ public class BookingDTO {
     }
 
     public BookingDTO(Long id, String fullName, String phoneNumber,
-                      LocalDate bookingDate, LocalTime bookingTime,
-                      Integer numberOfGuests, String specialRequests,
-                      Long tableId, String tableName, String areaName,
-                      String cancelReason,
-                      LocalDateTime createdAt, String status, String username) {
+            LocalDate bookingDate, LocalTime bookingTime,
+            Integer numberOfGuests, String specialRequests,
+            Long tableId, String tableName, String areaName,
+            String cancelReason,
+            LocalDateTime createdAt, String status, String username) {
         this.id = id;
         this.fullName = fullName;
         this.phoneNumber = phoneNumber;
@@ -97,48 +99,131 @@ public class BookingDTO {
 
     // ── Getters & Setters ──
 
-    public Long getId() { return id; }
-    public void setId(Long id) { this.id = id; }
+    public Long getId() {
+        return id;
+    }
 
-    public String getFullName() { return fullName; }
-    public void setFullName(String fullName) { this.fullName = fullName; }
+    public void setId(Long id) {
+        this.id = id;
+    }
 
-    public String getPhoneNumber() { return phoneNumber; }
-    public void setPhoneNumber(String phoneNumber) { this.phoneNumber = phoneNumber; }
+    public String getFullName() {
+        return fullName;
+    }
 
-    public LocalDate getBookingDate() { return bookingDate; }
-    public void setBookingDate(LocalDate bookingDate) { this.bookingDate = bookingDate; }
+    public void setFullName(String fullName) {
+        this.fullName = fullName;
+    }
 
-    public LocalTime getBookingTime() { return bookingTime; }
-    public void setBookingTime(LocalTime bookingTime) { this.bookingTime = bookingTime; }
+    public String getPhoneNumber() {
+        return phoneNumber;
+    }
 
-    public Integer getNumberOfGuests() { return numberOfGuests; }
-    public void setNumberOfGuests(Integer numberOfGuests) { this.numberOfGuests = numberOfGuests; }
+    public void setPhoneNumber(String phoneNumber) {
+        this.phoneNumber = phoneNumber;
+    }
 
-    public String getSpecialRequests() { return specialRequests; }
-    public void setSpecialRequests(String specialRequests) { this.specialRequests = specialRequests; }
+    public LocalDate getBookingDate() {
+        return bookingDate;
+    }
 
-    public Long getTableId() { return tableId; }
-    public void setTableId(Long tableId) { this.tableId = tableId; }
+    public void setBookingDate(LocalDate bookingDate) {
+        this.bookingDate = bookingDate;
+    }
 
-    public String getTableName() { return tableName; }
-    public void setTableName(String tableName) { this.tableName = tableName; }
+    public LocalTime getBookingTime() {
+        return bookingTime;
+    }
 
-    public String getAreaName() { return areaName; }
-    public void setAreaName(String areaName) { this.areaName = areaName; }
+    public void setBookingTime(LocalTime bookingTime) {
+        this.bookingTime = bookingTime;
+    }
 
-    public String getCancelReason() { return cancelReason; }
-    public void setCancelReason(String cancelReason) { this.cancelReason = cancelReason; }
+    public Integer getNumberOfGuests() {
+        return numberOfGuests;
+    }
 
-    public LocalDateTime getCreatedAt() { return createdAt; }
-    public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
+    public void setNumberOfGuests(Integer numberOfGuests) {
+        this.numberOfGuests = numberOfGuests;
+    }
 
-    public String getStatus() { return status; }
-    public void setStatus(String status) { this.status = status; }
+    public String getSpecialRequests() {
+        return specialRequests;
+    }
 
-    public String getUsername() { return username; }
-    public void setUsername(String username) { this.username = username; }
+    public void setSpecialRequests(String specialRequests) {
+        this.specialRequests = specialRequests;
+    }
 
-    public List<OrderItemDTO> getOrderedItems() { return orderedItems; }
-    public void setOrderedItems(List<OrderItemDTO> orderedItems) { this.orderedItems = orderedItems; }
+    public Long getTableId() {
+        return tableId;
+    }
+
+    public void setTableId(Long tableId) {
+        this.tableId = tableId;
+    }
+
+    public String getTableName() {
+        return tableName;
+    }
+
+    public void setTableName(String tableName) {
+        this.tableName = tableName;
+    }
+
+    public String getAreaName() {
+        return areaName;
+    }
+
+    public void setAreaName(String areaName) {
+        this.areaName = areaName;
+    }
+
+    public String getCancelReason() {
+        return cancelReason;
+    }
+
+    public void setCancelReason(String cancelReason) {
+        this.cancelReason = cancelReason;
+    }
+
+    public LocalDateTime getCreatedAt() {
+        return createdAt;
+    }
+
+    public void setCreatedAt(LocalDateTime createdAt) {
+        this.createdAt = createdAt;
+    }
+
+    public String getStatus() {
+        return status;
+    }
+
+    public void setStatus(String status) {
+        this.status = status;
+    }
+
+    public String getUsername() {
+        return username;
+    }
+
+    public void setUsername(String username) {
+        this.username = username;
+    }
+
+    public List<OrderItemDTO> getOrderedItems() {
+        return orderedItems;
+    }
+
+    public void setOrderedItems(List<OrderItemDTO> orderedItems) {
+        this.orderedItems = orderedItems;
+    }
+
+    public String getPaymentMethod() {
+        return paymentMethod;
+    }
+
+    public void setPaymentMethod(String paymentMethod) {
+        this.paymentMethod = paymentMethod;
+    }
 }

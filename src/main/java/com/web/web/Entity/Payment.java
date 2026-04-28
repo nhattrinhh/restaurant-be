@@ -5,8 +5,6 @@ import lombok.Data;
 
 import java.time.LocalDateTime;
 
-
-
 @Entity
 @Data
 @Table(name = "payments")
@@ -23,9 +21,8 @@ public class Payment {
     @Column(nullable = false)
     private PaymentMethod paymentMethod;
 
-
     public enum PaymentMethod {
-        CASH_ON_DELIVERY, ONLINE_PAYMENT
+        OFFLINE_PAYMENT, ONLINE_PAYMENT
     }
 
     public Long getId() {

@@ -10,9 +10,11 @@ import com.web.web.Repository.RestaurantTableRepository;
 import com.web.web.Repository.TableOrderRepository;
 import com.web.web.Repository.UserRepository;
 import com.web.web.Repository.OrderRepository;
+import com.web.web.Repository.PaymentRepository;
 import com.web.web.Dto.OrderItemDTO;
 import com.web.web.Entity.Order;
 import com.web.web.Entity.OrderItem;
+import com.web.web.Entity.Payment;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -38,18 +40,21 @@ public class BookingService {
     private final RestaurantTableRepository tableRepository;
     private final TableOrderRepository tableOrderRepository;
     private final OrderRepository orderRepository;
+    private final PaymentRepository paymentRepository;
 
     @Autowired
     public BookingService(BookingRepository bookingRepository,
             UserRepository userRepository,
             RestaurantTableRepository tableRepository,
             TableOrderRepository tableOrderRepository,
-            OrderRepository orderRepository) {
+            OrderRepository orderRepository,
+            PaymentRepository paymentRepository) {
         this.bookingRepository = bookingRepository;
         this.userRepository = userRepository;
         this.tableRepository = tableRepository;
         this.tableOrderRepository = tableOrderRepository;
         this.orderRepository = orderRepository;
+        this.paymentRepository = paymentRepository;
     }
 
     // ══════════════════════════════════════════
@@ -76,7 +81,8 @@ public class BookingService {
             if (dto.getBookingDate().equals(LocalDate.now())) {
                 boolean conflictWithOccupied = false;
                 try {
-                    com.web.web.Entity.TableOrder order = tableOrderRepository.findByTableIdAndStatus(table.getId(), com.web.web.Entity.TableOrder.OrderStatus.OPEN)
+                    com.web.web.Entity.TableOrder order = tableOrderRepository
+                            .findByTableIdAndStatus(table.getId(), com.web.web.Entity.TableOrder.OrderStatus.OPEN)
                             .orElse(null);
                     if (order != null && order.getEntryTime() != null && !order.getEntryTime().isEmpty()) {
                         LocalTime entryTime = LocalTime.parse(order.getEntryTime());
@@ -189,7 +195,9 @@ public class BookingService {
                         if (date.equals(LocalDate.now())) {
                             boolean conflictWithOccupied = false;
                             try {
-                                com.web.web.Entity.TableOrder order = tableOrderRepository.findByTableIdAndStatus(table.getId(), com.web.web.Entity.TableOrder.OrderStatus.OPEN)
+                                com.web.web.Entity.TableOrder order = tableOrderRepository
+                                        .findByTableIdAndStatus(table.getId(),
+                                                com.web.web.Entity.TableOrder.OrderStatus.OPEN)
                                         .orElse(null);
                                 if (order != null && order.getEntryTime() != null && !order.getEntryTime().isEmpty()) {
                                     LocalTime entryTime = LocalTime.parse(order.getEntryTime());
@@ -392,6 +400,7 @@ public class BookingService {
         // Fetch Order items
         List<Order> orders = orderRepository.findByBookingId(booking.getId());
         List<OrderItemDTO> orderedItems = new ArrayList<>();
+        String paymentMethod = null;
         if (orders != null && !orders.isEmpty()) {
             for (Order order : orders) {
                 if (order.getOrderItems() != null) {
@@ -407,9 +416,16 @@ public class BookingService {
                         orderedItems.add(itemDto);
                     }
                 }
+                if (paymentMethod == null) {
+                    Payment payment = paymentRepository.findByOrderId(order.getId());
+                    if (payment != null && payment.getPaymentMethod() != null) {
+                        paymentMethod = payment.getPaymentMethod().name();
+                    }
+                }
             }
         }
         dto.setOrderedItems(orderedItems);
+        dto.setPaymentMethod(paymentMethod);
         return dto;
     }
 }
