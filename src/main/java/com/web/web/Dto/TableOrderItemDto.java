@@ -13,10 +13,11 @@ public class TableOrderItemDto {
     private int quantity;
     private String note;
     private int batchNumber;
-    private String status; // PENDING, COOKING, DONE, CANCELLED
+    private String status; // PENDING, COOKING, DONE, SERVED, CANCELLED
+    private boolean paid;
     @com.fasterxml.jackson.annotation.JsonFormat(shape = com.fasterxml.jackson.annotation.JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss.SSS")
     private LocalDateTime createdAt;
-    
+
     @com.fasterxml.jackson.annotation.JsonFormat(shape = com.fasterxml.jackson.annotation.JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss.SSS")
     private LocalDateTime updatedAt;
 }

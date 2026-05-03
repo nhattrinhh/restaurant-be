@@ -131,9 +131,15 @@ public class TableOrderService {
         dto.setQuantity(item.getQuantity());
         dto.setNote(item.getNote());
         dto.setBatchNumber(item.getBatchNumber());
+        TableOrderItem.ItemStatus status = item.getStatus();
+        dto.setPaid(item.isPaid() || status == TableOrderItem.ItemStatus.PAID);
         // Keep draft items with empty status in API to avoid showing a "DRAFT" label in
-        // UI.
-        dto.setStatus(item.getStatus() == TableOrderItem.ItemStatus.DRAFT ? "" : item.getStatus().name());
+        // UI. PAID is exposed via a dedicated flag.
+        if (status == TableOrderItem.ItemStatus.DRAFT || status == TableOrderItem.ItemStatus.PAID) {
+            dto.setStatus("");
+        } else {
+            dto.setStatus(status.name());
+        }
         dto.setCreatedAt(item.getCreatedAt());
         dto.setUpdatedAt(item.getUpdatedAt());
         return dto;
@@ -362,7 +368,9 @@ public class TableOrderService {
             Long tableId = finalItem.getTableOrder().getTableId();
             tableRepo.findById(tableId).ifPresent(t -> {
                 try {
-                    recipeService.deductStock(finalItem.getProductId(), finalItem.getQuantity(), user, finalItem, "KDS DONE - Bàn " + t.getName() + " - Lần gọi " + finalItem.getBatchNumber() + " - " + finalItem.getProductName());
+                    recipeService.deductStock(finalItem.getProductId(), finalItem.getQuantity(), user, finalItem,
+                            "KDS DONE - Bàn " + t.getName() + " - Lần gọi " + finalItem.getBatchNumber() + " - "
+                                    + finalItem.getProductName());
                 } catch (Exception e) {
                     throw new RuntimeException("Error deducting stock: " + e.getMessage());
                 }
@@ -394,7 +402,7 @@ public class TableOrderService {
         tableRepo.findById(item.getTableOrder().getTableId()).ifPresent(table -> {
             event.put("tableName", table.getName());
         });
-        
+
         event.put("updatedAt", dto.getUpdatedAt());
 
         kitchenSse.pushEvent("status-update", event);
@@ -442,8 +450,8 @@ public class TableOrderService {
             boolean hasChanges = false;
             if (order.getItems() != null) {
                 for (TableOrderItem item : order.getItems()) {
-                    if (item.getStatus() != TableOrderItem.ItemStatus.DRAFT && item.getStatus() != TableOrderItem.ItemStatus.PAID) {
-                        item.setStatus(TableOrderItem.ItemStatus.PAID);
+                    if (item.getStatus() != TableOrderItem.ItemStatus.DRAFT && !item.isPaid()) {
+                        item.setPaid(true);
                         hasChanges = true;
                     }
                 }
@@ -455,7 +463,7 @@ public class TableOrderService {
                 order.setSurcharge(0);
                 order.setPromo(0);
                 order.setPaid(0);
-                
+
                 orderRepo.save(order);
 
                 // Update KDS seamlessly so it knows items might be paid off

@@ -40,6 +40,9 @@ public class TableOrderItem {
     @Column(nullable = false, length = 20)
     private ItemStatus status = ItemStatus.PENDING;
 
+    @Column(nullable = false)
+    private boolean paid = false;
+
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
 
